@@ -22,6 +22,9 @@ const Product = () => {
     const [selectedSize, setSelectedSize] = useState(null);
     const [selectedVariant, setSelectedVariant] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [selectedRatingFilter, setSelectedRatingFilter] = useState('all');
 
     const fetchProductData = async () => {
         try {
@@ -76,9 +79,26 @@ const Product = () => {
         }
     }
 
+    const fetchReviews = async () => {
+        try {
+            setReviewsLoading(true)
+            const response = await fetch(`${apiUrl}/reviews/product/${id}`)
+            const data = await response.json()
+            
+            if (Array.isArray(data)) {
+                setReviews(data)
+            }
+        } catch (error) {
+            console.error('Error fetching reviews:', error)
+        } finally {
+            setReviewsLoading(false)
+        }
+    }
+
     useEffect(() => {
         if (id) {
             fetchProductData();
+            fetchReviews();
         }
     }, [id, products.length])
 
@@ -109,6 +129,30 @@ const Product = () => {
     const displayName = productData?.name || 
         `${productData?.brand || 'Product'} ${productData?.category || ''}`
 
+    // Calculate review statistics
+    const reviewStats = {
+        average: reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : 0,
+        total: reviews.length,
+        distribution: {
+            5: reviews.filter(r => r.rating === 5).length,
+            4: reviews.filter(r => r.rating === 4).length,
+            3: reviews.filter(r => r.rating === 3).length,
+            2: reviews.filter(r => r.rating === 2).length,
+            1: reviews.filter(r => r.rating === 1).length,
+        },
+        withComments: reviews.filter(r => r.comment && r.comment.trim()).length,
+        withMedia: reviews.filter(r => r.image).length
+    }
+
+    // Filter reviews
+    const filteredReviews = selectedRatingFilter === 'all' 
+        ? reviews 
+        : selectedRatingFilter === 'comments'
+        ? reviews.filter(r => r.comment && r.comment.trim())
+        : selectedRatingFilter === 'media'
+        ? reviews.filter(r => r.image)
+        : reviews.filter(r => r.rating === parseInt(selectedRatingFilter))
+
     const handleAddToCart = () => {
         if (selectedVariant) {
             addToCart(productData._id, selectedVariant.variantId)
@@ -120,6 +164,21 @@ const Product = () => {
             addToCart(productData._id, selectedVariant.sku)
             router.push('/cart')
         }
+    }
+
+    const renderStars = (rating) => {
+        return (
+            <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <Image
+                        key={star}
+                        className="h-4 w-4"
+                        src={star <= rating ? assets.star_icon : assets.star_dull_icon}
+                        alt="star"
+                    />
+                ))}
+            </div>
+        )
     }
 
     return loading ? <Loading /> : productData ? (<>
@@ -176,14 +235,8 @@ const Product = () => {
                     
                     {/* Rating */}
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-0.5">
-                            <Image className="h-4 w-4" src={assets.star_icon} alt="star" />
-                            <Image className="h-4 w-4" src={assets.star_icon} alt="star" />
-                            <Image className="h-4 w-4" src={assets.star_icon} alt="star" />
-                            <Image className="h-4 w-4" src={assets.star_icon} alt="star" />
-                            <Image className="h-4 w-4" src={assets.star_dull_icon} alt="star" />
-                        </div>
-                        <p>(4.5)</p>
+                        {renderStars(Math.round(reviewStats.average))}
+                        <p>({reviewStats.average})</p>
                     </div>
 
                     {/* Price */}
@@ -287,6 +340,166 @@ const Product = () => {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="py-10">
+                <h2 className="text-2xl font-medium mb-6">ĐÁNH GIÁ SẢN PHẨM</h2>
+                
+                {/* Review Summary */}
+                <div className="bg-orange-50/50 rounded-lg p-6 mb-6">
+                    <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
+                        <div className="flex flex-col items-center">
+                            <div className="text-5xl font-bold text-orange-500 mb-2">
+                                {reviewStats.average}
+                                <span className="text-xl text-gray-500"> trên 5</span>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg key={star} className="w-6 h-6 text-red-500 fill-current" viewBox="0 0 20 20">
+                                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                    </svg>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setSelectedRatingFilter('all')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === 'all'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                Tất Cả
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('5')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === '5'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                5 Sao ({reviewStats.distribution[5]})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('4')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === '4'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                4 Sao ({reviewStats.distribution[4]})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('3')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === '3'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                3 Sao ({reviewStats.distribution[3]})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('2')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === '2'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                2 Sao ({reviewStats.distribution[2]})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('1')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === '1'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                1 Sao ({reviewStats.distribution[1]})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('comments')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === 'comments'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                Có Bình Luận ({reviewStats.withComments})
+                            </button>
+                            <button
+                                onClick={() => setSelectedRatingFilter('media')}
+                                className={`px-4 py-2 rounded-md border transition ${
+                                    selectedRatingFilter === 'media'
+                                        ? 'border-orange-500 bg-white text-orange-600'
+                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                }`}
+                            >
+                                Có Hình Ảnh / Video ({reviewStats.withMedia})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Reviews List */}
+                {reviewsLoading ? (
+                    <div className="text-center py-10">Đang tải đánh giá...</div>
+                ) : filteredReviews.length === 0 ? (
+                    <div className="text-center py-10 text-gray-500">Chưa có đánh giá nào</div>
+                ) : (
+                    <div className="space-y-6">
+                        {filteredReviews.map((review) => (
+                            <div key={review.review_id} className="border-b pb-6">
+                                <div className="flex gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium flex-shrink-0">
+                                        {review.customers?.users?.full_name?.[0] || 'U'}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium">{review.customers?.users?.full_name || 'Anonymous'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <svg key={star} className={`w-4 h-4 ${star <= review.rating ? 'text-red-500' : 'text-gray-300'} fill-current`} viewBox="0 0 20 20">
+                                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                                                </svg>
+                                            ))}
+                                        </div>
+                                        <div className="text-sm text-gray-500 mb-3">
+                                            {review.created_at} | Phân loại hàng: {review.order_detail?.product_variants?.attribute?.color} - {review.order_detail?.product_variants?.attribute?.size}
+                                        </div>
+                                        {review.comment && (
+                                            <p className="text-gray-700 mb-3">{review.comment}</p>
+                                        )}
+                                        {review.image && (
+                                            <div className="flex gap-2 mb-3">
+                                                <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
+                                                    <Image
+                                                        src={review.image}
+                                                        alt="Review image"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <button className="text-gray-400 text-sm flex items-center gap-1">
+                                            <span>👍</span>
+                                            <span className="text-gray-500">Hữu ích</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Featured Products */}

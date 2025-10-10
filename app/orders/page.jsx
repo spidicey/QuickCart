@@ -214,8 +214,22 @@ export default function MyOrders() {
                     className="px-6 py-4 border-b last:border-b-0"
                   >
                     <div className="flex items-start space-x-4">
-                      <div className="w-20 h-20 bg-gray-200 rounded border flex items-center justify-center text-gray-400 text-xs">
-                        Image
+                      <div className="w-20 h-20 bg-gray-200 rounded border overflow-hidden">
+                        {detail.variant.assets &&
+                        detail.variant.assets.length > 0 ? (
+                          <img
+                            src={
+                              detail.variant.assets.find((a) => a.is_primary)
+                                ?.url || detail.variant.assets[0].url
+                            }
+                            alt={detail.variant.product.product_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            No Image
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm text-gray-800 mb-2 line-clamp-2">

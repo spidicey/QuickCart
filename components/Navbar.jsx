@@ -32,16 +32,16 @@ const Navbar = () => {
       
       <div className="flex items-center gap-4 lg:gap-8 max-md:hidden">
         <Link href="/" className="hover:text-gray-900 transition">
-          Home
+          Trang Chủ
         </Link>
         <Link href="/all-products" className="hover:text-gray-900 transition">
-          Shop
+          Cửa Hàng
         </Link>
         <Link href="/" className="hover:text-gray-900 transition">
-          About Us
+          Về Chúng Tôi
         </Link>
         <Link href="/" className="hover:text-gray-900 transition">
-          Contact
+          Liên Hệ
         </Link>
 
         {isSeller && userData && (
@@ -49,7 +49,7 @@ const Navbar = () => {
             onClick={() => router.push('/seller')} 
             className="text-xs border px-4 py-1.5 rounded-full hover:bg-gray-50 transition"
           >
-            Seller Dashboard
+            Bảng Điều Khiển Người Bán
           </button>
         )}
       </div>
@@ -57,7 +57,7 @@ const Navbar = () => {
       <ul className="hidden md:flex items-center gap-4">
         {/* Search Icon */}
         <button className="hover:opacity-80 transition">
-          <Image className="w-4 h-4" src={assets.search_icon} alt="search icon" />
+          <Image className="w-4 h-4" src={assets.search_icon} alt="biểu tượng tìm kiếm" />
         </button>
 
         {/* Cart Icon with Badge */}
@@ -65,7 +65,7 @@ const Navbar = () => {
           onClick={() => router.push('/cart')}
           className="relative hover:opacity-80 transition"
         >
-          <Image className="w-5 h-5" src={assets.cart_icon} alt="cart icon" />
+          <Image className="w-5 h-5" src={assets.cart_icon} alt="biểu tượng giỏ hàng" />
           {cartCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               {cartCount}
@@ -81,7 +81,7 @@ const Navbar = () => {
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
               <Image src={assets.user_icon} alt="user icon" />
-              <span className="max-w-[100px] truncate">{userData.name || 'Account'}</span>
+              <span className="max-w-[100px] truncate">{userData.name || 'Tài Khoản'}</span>
             </button>
 
             {/* Dropdown Menu */}

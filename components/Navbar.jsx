@@ -80,7 +80,7 @@ const Navbar = () => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
-              <Image src={assets.user_icon} alt="user icon" />
+              <Image src={assets.user_icon} alt="biểu tượng người dùng" />
               <span className="max-w-[100px] truncate">{userData.name || 'Tài Khoản'}</span>
             </button>
 
@@ -123,7 +123,7 @@ const Navbar = () => {
             onClick={() => router.push('/login')}
             className="flex items-center gap-2 hover:text-gray-900 transition"
           >
-            <Image src={assets.user_icon} alt="user icon" />
+            <Image src={assets.user_icon} alt="biểu tượng người dùng" />
             Login
           </button>
         )}
@@ -159,7 +159,7 @@ const Navbar = () => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
-              <Image src={assets.user_icon} alt="user icon" />
+              <Image src={assets.user_icon} alt="biểu tượng người dùng" />
             </button>
 
             {showDropdown && (
@@ -204,7 +204,7 @@ const Navbar = () => {
             onClick={() => router.push('/login')}
             className="flex items-center gap-2 hover:text-gray-900 transition text-sm"
           >
-            <Image src={assets.user_icon} alt="user icon" />
+            <Image src={assets.user_icon} alt="biểu tượng người dùng" />
             Login
           </button>
         )}

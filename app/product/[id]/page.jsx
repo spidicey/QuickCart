@@ -41,19 +41,36 @@ const Product = () => {
             _id: item.product_id.toString(),
             productId: item.product_id,
             name: item.product_name,
+            slug: item.slug,
+            description: item.description,
             brand: item.brand?.brand_name,
             brandId: item.brand?.brand_id,
             category: item.category?.category_name,
             categoryId: item.category?.category_id,
+            status: item.status,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
             variants:
-              item.variants?.map((v) => ({
-                variantId: v.variant_id,
-                sku: v.sku,
-                price: parseFloat(v.price),
-                size: v.size,
-                color: v.color,
-                image: v.image,
+              item.variants?.map((variant) => ({
+                variantId: variant.variant_id,
+                sku: variant.sku,
+                barcode: variant.barcode,
+                price: parseFloat(variant.price),
+                offerPrice: parseFloat(variant.price),
+                quantity: variant.quantity,
+                status: variant.status,
+                size: variant.size,
+                gender: variant.gender,
+                sizeType: variant.size_type,
+                attributes: variant.attributes,
+                color: variant.color,
+                assets: variant.assets,
+                primaryImage: variant.primary_image,
+                image: variant.primary_image, // For backward compatibility
               })) || [],
+            offerPrice: item.variants?.[0]?.price
+              ? parseFloat(item.variants[0].price)
+              : 0,
           };
         }
       }
@@ -63,10 +80,17 @@ const Product = () => {
         // Set default selections
         if (product.variants && product.variants.length > 0) {
           const firstVariant = product.variants[0];
-          setSelectedColor(firstVariant.color);
+          // Use attributes.màu for color if color field is null
+          const color = firstVariant.color || firstVariant.attributes?.màu;
+          setSelectedColor(color);
           setSelectedSize(firstVariant.size);
           setSelectedVariant(firstVariant);
-          setMainImage(firstVariant.image);
+          // Use primary image or first asset image
+          const initialImage =
+            firstVariant.image ||
+            firstVariant.primaryImage ||
+            firstVariant.assets?.[0]?.url;
+          setMainImage(initialImage);
         }
       }
     } catch (error) {
@@ -102,14 +126,18 @@ const Product = () => {
   // Update selected variant when color or size changes
   useEffect(() => {
     if (productData && selectedColor && selectedSize) {
-      const variant = productData.variants.find(
-        (v) => v.color === selectedColor && v.size === selectedSize
-      );
+      const variant = productData.variants.find((v) => {
+        const variantColor = v.color || v.attributes?.màu;
+        return variantColor === selectedColor && v.size === selectedSize;
+      });
 
       if (variant) {
         setSelectedVariant(variant);
-        if (variant.image) {
-          setMainImage(variant.image);
+        // Use primary image or first asset image
+        const variantImage =
+          variant.image || variant.primaryImage || variant.assets?.[0]?.url;
+        if (variantImage) {
+          setMainImage(variantImage);
         }
       }
     }
@@ -117,15 +145,32 @@ const Product = () => {
 
   // Get unique colors and sizes
   const availableColors = productData
-    ? [...new Set(productData.variants.map((v) => v.color))]
+    ? [
+        ...new Set(
+          productData.variants
+            .map((v) => v.color || v.attributes?.màu)
+            .filter(Boolean)
+        ),
+      ]
     : [];
   const availableSizes = productData
-    ? [...new Set(productData.variants.map((v) => v.size))]
+    ? [...new Set(productData.variants.map((v) => v.size).filter(Boolean))]
     : [];
 
-  // Get all unique images from variants
+  // Get all unique images from variants (including assets array)
   const allImages = productData
-    ? [...new Set(productData.variants.map((v) => v.image).filter(Boolean))]
+    ? [
+        ...new Set([
+          // Primary images from each variant
+          ...productData.variants
+            .map((v) => v.image || v.primaryImage)
+            .filter(Boolean),
+          // All images from assets array
+          ...productData.variants
+            .flatMap((v) => v.assets?.map((asset) => asset.url) || [])
+            .filter(Boolean),
+        ]),
+      ]
     : [];
 
   // Product display name
@@ -171,7 +216,7 @@ const Product = () => {
 
   const handleBuyNow = () => {
     if (selectedVariant) {
-      addToCart(productData._id, selectedVariant.sku);
+      addToCart(productData._id, selectedVariant.variantId);
       router.push("/cart");
     }
   };

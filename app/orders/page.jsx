@@ -2,8 +2,10 @@
 import Navbar from "@/components/Navbar";
 import { Search, MessageSquare, Store, HelpCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAppContext } from "@/context/AppContext";
 
 export default function MyOrders() {
+  const { apiUrl } = useAppContext();
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export default function MyOrders() {
       return;
     }
     try {
-      const response = await fetch("http://localhost:3618/orders/my-orders", {
+      const response = await fetch(`${apiUrl}/orders/my-orders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -207,46 +209,57 @@ export default function MyOrders() {
               </div>
 
               {/* Product Details */}
-              {order.details &&
-                order.details.map((detail) => (
+              {order.order_detail &&
+                order.order_detail.map((detail) => (
                   <div
                     key={detail.order_detail_id}
                     className="px-6 py-4 border-b last:border-b-0"
                   >
                     <div className="flex items-start space-x-4">
                       <div className="w-20 h-20 bg-gray-200 rounded border overflow-hidden">
-                        {detail.variant.assets &&
-                        detail.variant.assets.length > 0 ? (
+                        {detail.product_variants.variant_assets &&
+                        detail.product_variants.variant_assets.length > 0 ? (
                           <img
                             src={
-                              detail.variant.assets.find((a) => a.is_primary)
-                                ?.url || detail.variant.assets[0].url
+                              detail.product_variants.variant_assets.find(
+                                (a) => a.is_primary
+                              )?.image_url ||
+                              detail.product_variants.variant_assets[0]
+                                .image_url
                             }
-                            alt={detail.variant.product.product_name}
+                            alt={detail.product_variants.products.product_name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                            No Image
+                            Không có hình ảnh
                           </div>
                         )}
                       </div>
                       <div className="flex-1">
                         <h3 className="text-sm text-gray-800 mb-2 line-clamp-2">
-                          {detail.variant.product.product_name}
+                          {detail.product_variants.products.product_name}
                         </h3>
                         <p className="text-xs text-gray-500 mb-1">
-                          Phân loại hàng: {detail.variant.attribute.color},{" "}
-                          {detail.variant.attribute.size},{" "}
-                          {detail.variant.attribute.gender}
+                          Phân loại hàng:{" "}
+                          {detail.product_variants.attribute.color}
+                          {detail.product_variants.attribute.size &&
+                            `, ${detail.product_variants.attribute.size}`}
+                          {detail.product_variants.attribute.gender &&
+                            `, ${detail.product_variants.attribute.gender}`}
                         </p>
                         <p className="text-sm">x{detail.quantity}</p>
                       </div>
                       <div className="text-right">
                         <div className="text-gray-400 line-through text-sm">
-                          {parseFloat(detail.variant.base_price).toLocaleString(
-                            "vi-VN"
-                          )}
+                          {typeof detail.product_variants.base_price ===
+                          "object"
+                            ? parseFloat(
+                                detail.product_variants.base_price.d.join("")
+                              ).toLocaleString("vi-VN")
+                            : parseFloat(
+                                detail.product_variants.base_price
+                              ).toLocaleString("vi-VN")}
                           đ
                         </div>
                         <div className="text-red-500 font-medium">
@@ -293,7 +306,7 @@ export default function MyOrders() {
                     <div className="text-2xl font-medium text-red-500">
                       {(
                         parseFloat(order.total_price) +
-                        parseFloat(order.shipping_fee)
+                        parseFloat(order.shipping_fee || 0)
                       ).toLocaleString("vi-VN")}
                       đ
                     </div>
@@ -306,20 +319,22 @@ export default function MyOrders() {
                 <div className="flex justify-between">
                   <span>Mã đơn hàng: #{order.order_id}</span>
                   <span>
-                    Địa chỉ: {order.address.house_num} {order.address.street},{" "}
-                    {order.address.ward}, {order.address.district},{" "}
-                    {order.address.province}
+                    Địa chỉ: {order.addresses.house_num}{" "}
+                    {order.addresses.street}, {order.addresses.ward},{" "}
+                    {order.addresses.district}, {order.addresses.province}
                   </span>
                 </div>
                 <div className="flex justify-between mt-1">
                   <span>
-                    Người nhận: {order.address.consignee_name} -{" "}
-                    {order.address.consignee_phone}
+                    Người nhận: {order.addresses.consignee_name} -{" "}
+                    {order.addresses.consignee_phone}
                   </span>
                   <span>
                     Trạng thái thanh toán:{" "}
                     {order.payment_status === "paid"
                       ? "Đã thanh toán"
+                      : order.payment_status === "pending"
+                      ? "Chờ thanh toán"
                       : "Chưa thanh toán"}
                   </span>
                 </div>

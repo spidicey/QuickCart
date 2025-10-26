@@ -4,25 +4,14 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "res.cloudinary.com",
-        pathname: "**",
+        hostname: "**",
       },
       {
-        protocol: "https",
-        hostname: "raw.githubusercontent.com",
-        pathname: "**",
-      },
-      {
-        protocol: "https",
-        hostname: "assets.adidas.com",
-        pathname: "**",
-      },
-      {
-        protocol: "https",
-        hostname: "brand.assets.adidas.com",
-        pathname: "**",
+        protocol: "http",
+        hostname: "**",
       },
     ],
+    unoptimized: true,
   },
 };
 

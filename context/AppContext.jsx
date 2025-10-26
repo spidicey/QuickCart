@@ -155,42 +155,41 @@ export const AppContextProvider = (props) => {
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
-        const groupedProducts = {};
-
-        result.data.forEach((item) => {
-          const productId = item.product_id.toString();
-
-          if (!groupedProducts[productId]) {
-            groupedProducts[productId] = {
-              _id: productId,
-              productId: item.product_id,
-              name: item.product_name,
-              brand: item.brand?.brand_name,
-              brandId: item.brand?.brand_id,
-              category: item.category?.category_name,
-              categoryId: item.category?.category_id,
-              status: item.status,
-              variants: [],
-            };
-          }
-
-          groupedProducts[productId].variants.push({
-            sku: item.sku,
-            price: parseFloat(item.price),
-            offerPrice: parseFloat(item.price),
-            size: item.size,
-            color: item.color,
-            image: item.image,
-            status: item.status,
-          });
-        });
-
-        const transformedProducts = Object.values(groupedProducts).map(
-          (product) => ({
-            ...product,
-            offerPrice: product.variants[0]?.price || 0,
-          })
-        );
+        const transformedProducts = result.data.map((product) => ({
+          _id: product.product_id.toString(),
+          productId: product.product_id,
+          name: product.product_name,
+          slug: product.slug,
+          description: product.description,
+          brand: product.brand?.brand_name,
+          brandId: product.brand?.brand_id,
+          category: product.category?.category_name,
+          categoryId: product.category?.category_id,
+          status: product.status,
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
+          variants:
+            product.variants?.map((variant) => ({
+              variantId: variant.variant_id,
+              sku: variant.sku,
+              barcode: variant.barcode,
+              price: parseFloat(variant.price),
+              offerPrice: parseFloat(variant.price),
+              quantity: variant.quantity,
+              status: variant.status,
+              size: variant.size,
+              gender: variant.gender,
+              sizeType: variant.size_type,
+              attributes: variant.attributes,
+              color: variant.color,
+              assets: variant.assets,
+              primaryImage: variant.primary_image,
+              image: variant.primary_image, // For backward compatibility
+            })) || [],
+          offerPrice: product.variants?.[0]?.price
+            ? parseFloat(product.variants[0].price)
+            : 0,
+        }));
 
         setProducts(transformedProducts);
       } else {
@@ -211,25 +210,41 @@ export const AppContextProvider = (props) => {
       const result = await response.json();
 
       if (result.success && result.data) {
-        const item = result.data;
+        const product = result.data;
         return {
-          _id: item.product_id.toString(),
-          productId: item.product_id,
-          name: item.product_name,
-          brand: item.brand?.brand_name,
-          brandId: item.brand?.brand_id,
-          category: item.category?.category_name,
-          categoryId: item.category?.category_id,
+          _id: product.product_id.toString(),
+          productId: product.product_id,
+          name: product.product_name,
+          slug: product.slug,
+          description: product.description,
+          brand: product.brand?.brand_name,
+          brandId: product.brand?.brand_id,
+          category: product.category?.category_name,
+          categoryId: product.category?.category_id,
+          status: product.status,
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
           variants:
-            item.variants?.map((v) => ({
-              variantId: v.variant_id,
-              sku: v.sku,
-              price: parseFloat(v.price),
-              offerPrice: parseFloat(v.price),
-              size: v.size,
-              color: v.color,
-              image: v.image,
+            product.variants?.map((variant) => ({
+              variantId: variant.variant_id,
+              sku: variant.sku,
+              barcode: variant.barcode,
+              price: parseFloat(variant.price),
+              offerPrice: parseFloat(variant.price),
+              quantity: variant.quantity,
+              status: variant.status,
+              size: variant.size,
+              gender: variant.gender,
+              sizeType: variant.size_type,
+              attributes: variant.attributes,
+              color: variant.color,
+              assets: variant.assets,
+              primaryImage: variant.primary_image,
+              image: variant.primary_image, // For backward compatibility
             })) || [],
+          offerPrice: product.variants?.[0]?.price
+            ? parseFloat(product.variants[0].price)
+            : 0,
         };
       }
       return null;
@@ -270,9 +285,9 @@ export const AppContextProvider = (props) => {
         setCartData(result);
 
         const localCart = {};
-        if (result.details && Array.isArray(result.details)) {
-          result.details.forEach((detail) => {
-            const variant = detail.variant;
+        if (result.cart_detail && Array.isArray(result.cart_detail)) {
+          result.cart_detail.forEach((detail) => {
+            const variant = detail.product_variants;
             const cartKey = `${variant.product_id}_${variant.sku}`;
             localCart[cartKey] = detail.quantity;
           });
@@ -379,7 +394,7 @@ export const AppContextProvider = (props) => {
 
   const getCartAmount = () => {
     if (cartData && cartData.total_price) {
-      return parseFloat(cartData.total_price.d.join(""));
+      return parseFloat(cartData.total_price);
     }
 
     let totalAmount = 0;
@@ -415,12 +430,16 @@ export const AppContextProvider = (props) => {
         variantId: detail.product_variants.variant_id,
         sku: detail.product_variants.sku,
         quantity: detail.quantity,
-        price: parseFloat(detail.product_variants.base_price.d.join("")),
-        subPrice: parseFloat(detail.sub_price.d.join("")),
-        image: detail.product_variants.variant_assets?.[0]?.image_url || null,
+        price: parseFloat(detail.product_variants.base_price),
+        subPrice: parseFloat(detail.sub_price),
+        image: detail.product_variants.variant_assets?.[0]?.url || null,
         size: detail.product_variants.attribute?.size,
-        color: detail.product_variants.attribute?.color,
+        color:
+          detail.product_variants.attribute?.màu ||
+          detail.product_variants.attribute?.color,
         barcode: detail.product_variants.barcode,
+        attributes: detail.product_variants.attribute,
+        assets: detail.product_variants.variant_assets,
       }));
     }
     return [];

@@ -7,8 +7,14 @@ const Banner = () => {
   const { userData, router, showToast } = useAppContext();
 
   const handleBuyNow = () => {
-    if (!userData) {
-      showToast("Bạn phải đăng nhập để mua hàng", "warning");
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      const confirmed = confirm(
+        "Bạn phải đăng nhập để mua hàng. Bạn có muốn đăng nhập ngay không?"
+      );
+      if (confirmed) {
+        router.push("/login");
+      }
       return;
     }
     // TODO: Implement buy now functionality

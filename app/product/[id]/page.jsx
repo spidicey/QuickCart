@@ -209,12 +209,34 @@ const Product = () => {
       : reviews.filter((r) => r.rating === parseInt(selectedRatingFilter));
 
   const handleAddToCart = () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      const confirmed = confirm(
+        "Bạn phải đăng nhập để thêm sản phẩm vào giỏ hàng. Bạn có muốn đăng nhập ngay không?"
+      );
+      if (confirmed) {
+        router.push("/login");
+      }
+      return;
+    }
+
     if (selectedVariant) {
       addToCart(productData._id, selectedVariant.variantId);
     }
   };
 
   const handleBuyNow = () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      const confirmed = confirm(
+        "Bạn phải đăng nhập để mua hàng. Bạn có muốn đăng nhập ngay không?"
+      );
+      if (confirmed) {
+        router.push("/login");
+      }
+      return;
+    }
+
     if (selectedVariant) {
       addToCart(productData._id, selectedVariant.variantId);
       router.push("/cart");

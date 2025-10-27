@@ -20,6 +20,17 @@ const Cart = () => {
     currency,
   } = useAppContext();
 
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      // Show alert and redirect to login
+      alert("Bạn phải đăng nhập để truy cập giỏ hàng");
+      router.push("/login");
+      return;
+    }
+  }, [router]);
+
   const [cartDisplay, setCartDisplay] = useState([]);
 
   useEffect(() => {

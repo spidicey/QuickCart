@@ -183,7 +183,8 @@ const OrderSummary = () => {
         // Redirect to MoMo payment page
         window.location.href = result.payUrl;
       } else {
-        alert("Đặt hàng thành công!");
+        // Clear cart after successful order
+        await fetchCart();
         router.push(`/order-success/${result.order.order_id}`);
       }
     } catch (error) {

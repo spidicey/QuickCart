@@ -112,8 +112,14 @@ const ProductCard = ({ product }) => {
         <button
           onClick={(e) => {
             e.stopPropagation(); // Prevent navigation
-            if (!userData) {
-              showToast("Bạn phải đăng nhập để mua hàng", "warning");
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+              const confirmed = confirm(
+                "Bạn phải đăng nhập để mua hàng. Bạn có muốn đăng nhập ngay không?"
+              );
+              if (confirmed) {
+                router.push("/login");
+              }
               return;
             }
             router.push("/product/" + product._id);

@@ -130,7 +130,7 @@ export default function MyOrders() {
     setRepayingOrders((prev) => new Set(prev).add(orderId));
 
     try {
-      const response = await fetch(`${apiUrl}/orders/${orderId}/pay`, {
+      const response = await fetch(`${apiUrl}/orders/${orderId}/repay`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -140,13 +140,19 @@ export default function MyOrders() {
 
       const result = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !result.success) {
         throw new Error(result.message || "Không thể thực hiện thanh toán lại");
       }
 
-      if (result.paymentUrl) {
-        window.location.href = result.paymentUrl;
+      // Handle different payment methods similar to pay API
+      if (result.data?.qrUrl) {
+        // Redirect to VNPay payment page
+        window.location.href = result.data.qrUrl;
+      } else if (result.data?.payUrl) {
+        // Redirect to MoMo or other payment page
+        window.location.href = result.data.payUrl;
       } else {
+        // For COD or other non-redirect payment methods
         alert("Thanh toán lại thành công!");
         fetchOrders(); // Refresh orders
       }

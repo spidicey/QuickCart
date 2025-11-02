@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
@@ -7,13 +7,13 @@ import Link from "next/link";
 
 const Login = () => {
   const { router, apiUrl, setUserData } = useAppContext();
-  
+
   const [isLogin, setIsLogin] = useState(true); // Toggle between login/register
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     name: "", // For registration
-    confirmPassword: "" // For registration
+    confirmPassword: "", // For registration
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ const Login = () => {
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     setError(""); // Clear error when user types
   };
@@ -44,15 +44,10 @@ const Login = () => {
       });
 
       const result = await response.json();
-
-      if (result.success) {
-        // Store token in localStorage
+      console.log("Login result:", result);
+      if (result.success && result.roles === "CUSTOMER") {
         localStorage.setItem("token", result.token);
-        
-        // Update user data in context
         setUserData(result.user);
-        
-        // Redirect to home
         router.push("/");
       } else {
         setError(result.message || "Login failed. Please try again.");
@@ -133,8 +128,8 @@ const Login = () => {
             {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isLogin 
-              ? "Please login to your account" 
+            {isLogin
+              ? "Please login to your account"
               : "Sign up to get started"}
           </p>
         </div>
@@ -147,12 +142,18 @@ const Login = () => {
         )}
 
         {/* Form */}
-        <form onSubmit={isLogin ? handleLogin : handleRegister} className="mt-8 space-y-6">
+        <form
+          onSubmit={isLogin ? handleLogin : handleRegister}
+          className="mt-8 space-y-6"
+        >
           <div className="space-y-4">
             {/* Name field (only for registration) */}
             {!isLogin && (
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Full Name
                 </label>
                 <input
@@ -170,7 +171,10 @@ const Login = () => {
 
             {/* Email field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email Address
               </label>
               <input
@@ -187,7 +191,10 @@ const Login = () => {
 
             {/* Password field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <input
@@ -205,7 +212,10 @@ const Login = () => {
             {/* Confirm Password field (only for registration) */}
             {!isLogin && (
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Confirm Password
                 </label>
                 <input
@@ -232,13 +242,19 @@ const Login = () => {
                   type="checkbox"
                   className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-orange-600 hover:text-orange-500">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-orange-600 hover:text-orange-500"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -253,27 +269,52 @@ const Login = () => {
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Processing...
               </span>
+            ) : isLogin ? (
+              "Sign In"
             ) : (
-              isLogin ? "Sign In" : "Create Account"
+              "Create Account"
             )}
           </button>
 
           {/* Toggle between Login/Register */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              {isLogin
+                ? "Don't have an account? "
+                : "Already have an account? "}
               <button
                 type="button"
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError("");
-                  setFormData({ email: "", password: "", name: "", confirmPassword: "" });
+                  setFormData({
+                    email: "",
+                    password: "",
+                    name: "",
+                    confirmPassword: "",
+                  });
                 }}
                 className="font-medium text-orange-600 hover:text-orange-500"
               >

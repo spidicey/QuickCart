@@ -130,7 +130,7 @@ export default function MyOrders() {
     setRepayingOrders((prev) => new Set(prev).add(orderId));
 
     try {
-      const response = await fetch(`${apiUrl}/orders/${orderId}/repay`, {
+      const response = await fetch(`${apiUrl}/orders/${orderId}/pay`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -162,27 +162,43 @@ export default function MyOrders() {
     }
   };
 
+  const handleBuyAgain = (order) => {
+    // Get the first product from order details
+    if (
+      order.order_detail &&
+      order.order_detail.length > 0 &&
+      order.order_detail[0].product_variants?.products?.product_id
+    ) {
+      const productId =
+        order.order_detail[0].product_variants.products.product_id;
+      router.push(`/product/${productId}`);
+    } else {
+      alert("Không thể tìm thấy thông tin sản phẩm");
+    }
+  };
+
   const getButtonsByStatus = (status, orderId) => {
     const buttons = [];
 
     switch (status) {
       case "delivered":
-        buttons.push("Đánh Giá", "Liên Hệ Người Bán", "Mua Lại");
+        buttons.push("Đánh Giá", "Mua Lại");
         break;
       case "pending":
-        buttons.push("Hủy Đơn Hàng", "Liên Hệ Người Bán");
+        buttons.push("Hủy Đơn Hàng");
         break;
       case "confirmed":
-        buttons.push("Hủy Đơn Hàng", "Liên Hệ Người Bán");
+        buttons.push("Hủy Đơn Hàng");
         break;
       case "processing":
-        buttons.push("Hủy Đơn Hàng", "Liên Hệ Người Bán");
+        buttons.push("Hủy Đơn Hàng");
         break;
       case "shipping":
-        buttons.push("Liên Hệ Người Bán", "Xem Vận Đơn");
+        buttons.push("Xem Vận Đơn");
         break;
       default:
-        buttons.push("Liên Hệ Người Bán");
+        // No buttons for default status
+        break;
     }
 
     return buttons;
@@ -430,7 +446,7 @@ export default function MyOrders() {
 
                       {/* Order Status and Actions */}
                       <div className="text-right ml-4">
-                        <div className="text-sm text-gray-500 mb-1">
+                        {/* <div className="text-sm text-gray-500 mb-1">
                           Trạng thái
                         </div>
                         <div
@@ -441,7 +457,7 @@ export default function MyOrders() {
                         >
                           {statusTextMap[order.order_status] ||
                             order.order_status}
-                        </div>
+                        </div> */}
                         <div className="text-xs text-gray-500 mt-1">
                           {formatDate(order.created_at)}
                         </div>
@@ -558,6 +574,12 @@ export default function MyOrders() {
                         ).map((button, index) => (
                           <button
                             key={button}
+                            onClick={() => {
+                              if (button === "Mua Lại") {
+                                handleBuyAgain(order);
+                              }
+                              // Add handlers for other buttons if needed
+                            }}
                             className={`px-4 py-2 rounded text-sm font-medium transition ${
                               index === 0 && order.order_status === "delivered"
                                 ? "bg-orange-600 text-white hover:bg-orange-700"

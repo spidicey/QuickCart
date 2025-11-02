@@ -42,10 +42,23 @@ const Cart = () => {
           const product = products.find(
             (p) => p.productId === detail.productId
           );
+
+          // Try to get size from product variant if not already in detail
+          let size = detail.size;
+          if (!size && product?.variants) {
+            const variant = product.variants.find(
+              (v) => v.sku === detail.sku || v.variantId === detail.variantId
+            );
+            if (variant) {
+              size = variant.size;
+            }
+          }
+
           return {
             ...detail,
             name: product?.name || "Product",
             cartKey: `${detail.productId}_${detail.sku}`,
+            size: size || detail.size, // Use found size or keep existing
           };
         })
       );
@@ -228,9 +241,9 @@ const Cart = () => {
                               Màu sắc: {item.color}
                             </p>
                           )}
-                          {item.variantId && (
+                          {item.sku && (
                             <p className="text-xs text-gray-400 mt-1">
-                              SKU: {item.variantId}
+                              SKU: {item.sku}
                             </p>
                           )}
                           <button

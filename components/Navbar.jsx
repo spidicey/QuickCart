@@ -36,21 +36,6 @@ const Navbar = () => {
         <Link href="/all-products" className="hover:text-gray-900 transition">
           Cửa Hàng
         </Link>
-        <Link href="/" className="hover:text-gray-900 transition">
-          Về Chúng Tôi
-        </Link>
-        <Link href="/" className="hover:text-gray-900 transition">
-          Liên Hệ
-        </Link>
-
-        {isSeller && userData && (
-          <button
-            onClick={() => router.push("/seller")}
-            className="text-xs border px-4 py-1.5 rounded-full hover:bg-gray-50 transition"
-          >
-            Bảng Điều Khiển Người Bán
-          </button>
-        )}
       </div>
 
       <ul className="hidden md:flex items-center gap-4">

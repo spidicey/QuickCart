@@ -425,22 +425,32 @@ export const AppContextProvider = (props) => {
 
   const getCartDetails = () => {
     if (cartData && cartData.cart_detail) {
-      return cartData.cart_detail.map((detail) => ({
-        productId: detail.product_variants.product_id,
-        variantId: detail.product_variants.variant_id,
-        sku: detail.product_variants.sku,
-        quantity: detail.quantity,
-        price: parseFloat(detail.product_variants.base_price),
-        subPrice: parseFloat(detail.sub_price),
-        image: detail.product_variants.variant_assets?.[0]?.url || null,
-        size: detail.product_variants.attribute?.size,
-        color:
-          detail.product_variants.attribute?.màu ||
-          detail.product_variants.attribute?.color,
-        barcode: detail.product_variants.barcode,
-        attributes: detail.product_variants.attribute,
-        assets: detail.product_variants.variant_assets,
-      }));
+      return cartData.cart_detail.map((detail) => {
+        const variant = detail.product_variants;
+        // Try to get size from various possible locations
+        const size = 
+          variant.attribute?.size || 
+          variant.size || 
+          (variant.size_id ? `Size ID: ${variant.size_id}` : null);
+        
+        return {
+          productId: variant.product_id,
+          variantId: variant.variant_id,
+          sku: variant.sku,
+          quantity: detail.quantity,
+          price: parseFloat(variant.base_price),
+          subPrice: parseFloat(detail.sub_price),
+          image: variant.variant_assets?.find(asset => asset.is_primary)?.url || 
+                 variant.variant_assets?.[0]?.url || null,
+          size: size,
+          color:
+            variant.attribute?.màu ||
+            variant.attribute?.color,
+          barcode: variant.barcode,
+          attributes: variant.attribute,
+          assets: variant.variant_assets,
+        };
+      });
     }
     return [];
   };

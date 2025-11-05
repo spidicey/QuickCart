@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
+import { apiFetch, getAuthHeaders } from "@/lib/api";
 
 export const AppContext = createContext();
 
@@ -33,11 +34,10 @@ export const AppContextProvider = (props) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${apiUrl}/lookbooks`);
-      const result = await response.json();
+      const { data } = await apiFetch(`${apiUrl}/lookbooks`);
 
-      if (Array.isArray(result)) {
-        const transformedLookbooks = result.map((lookbook) => ({
+      if (Array.isArray(data)) {
+        const transformedLookbooks = data.map((lookbook) => ({
           _id: lookbook.lookbook_id.toString(),
           lookbookId: lookbook.lookbook_id,
           title: lookbook.title,
@@ -93,21 +93,20 @@ export const AppContextProvider = (props) => {
   // Fetch single lookbook by ID or slug
   const fetchLookbookById = async (identifier) => {
     try {
-      const response = await fetch(`${apiUrl}/lookbooks/${identifier}`);
-      const result = await response.json();
+      const { data } = await apiFetch(`${apiUrl}/lookbooks/${identifier}`);
 
-      if (result && result.lookbook_id) {
+      if (data && data.lookbook_id) {
         return {
-          _id: result.lookbook_id.toString(),
-          lookbookId: result.lookbook_id,
-          title: result.title,
-          slug: result.slug,
-          description: result.description,
-          image: result.image,
-          createdAt: result.created_at,
-          updatedAt: result.updated_at,
+          _id: data.lookbook_id.toString(),
+          lookbookId: data.lookbook_id,
+          title: data.title,
+          slug: data.slug,
+          description: data.description,
+          image: data.image,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
           items:
-            result.items?.map((item) => ({
+            data.items?.map((item) => ({
               itemId: item.item_id,
               position: item.position,
               note: item.note,
@@ -151,11 +150,10 @@ export const AppContextProvider = (props) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${apiUrl}/products`);
-      const result = await response.json();
-
-      if (result.success && Array.isArray(result.data)) {
-        const transformedProducts = result.data.map((product) => ({
+      const { data } = await apiFetch(`${apiUrl}/products`);
+      console.log(data);
+      if (Array.isArray(data)) {
+        const transformedProducts = data.map((product) => ({
           _id: product.product_id.toString(),
           productId: product.product_id,
           name: product.product_name,
@@ -190,7 +188,7 @@ export const AppContextProvider = (props) => {
             ? parseFloat(product.variants[0].price)
             : 0,
         }));
-
+        console.log(transformedProducts);
         setProducts(transformedProducts);
       } else {
         setError("Failed to fetch products");
@@ -206,11 +204,10 @@ export const AppContextProvider = (props) => {
   // Fetch single product by ID
   const fetchProductById = async (productId) => {
     try {
-      const response = await fetch(`${apiUrl}/products/${productId}`);
-      const result = await response.json();
+      const { data } = await apiFetch(`${apiUrl}/products/${productId}`);
 
-      if (result.success && result.data) {
-        const product = result.data;
+      if (data) {
+        const product = data;
         return {
           _id: product.product_id.toString(),
           productId: product.product_id,
@@ -275,18 +272,17 @@ export const AppContextProvider = (props) => {
       const token = localStorage.getItem("access_token");
       if (!token) return;
 
-      const response = await fetch(`${apiUrl}/cart`, {
+      const { data } = await apiFetch(`${apiUrl}/cart`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(token),
         },
       });
-      if (response.ok) {
-        const result = await response.json();
-        setCartData(result);
+      if (data) {
+        setCartData(data);
 
         const localCart = {};
-        if (result.cart_detail && Array.isArray(result.cart_detail)) {
-          result.cart_detail.forEach((detail) => {
+        if (data.cart_detail && Array.isArray(data.cart_detail)) {
+          data.cart_detail.forEach((detail) => {
             const variant = detail.product_variants;
             const cartKey = `${variant.product_id}_${variant.sku}`;
             localCart[cartKey] = detail.quantity;
@@ -428,11 +424,11 @@ export const AppContextProvider = (props) => {
       return cartData.cart_detail.map((detail) => {
         const variant = detail.product_variants;
         // Try to get size from various possible locations
-        const size = 
-          variant.attribute?.size || 
-          variant.size || 
+        const size =
+          variant.attribute?.size ||
+          variant.size ||
           (variant.size_id ? `Size ID: ${variant.size_id}` : null);
-        
+
         return {
           productId: variant.product_id,
           variantId: variant.variant_id,
@@ -440,12 +436,12 @@ export const AppContextProvider = (props) => {
           quantity: detail.quantity,
           price: parseFloat(variant.base_price),
           subPrice: parseFloat(detail.sub_price),
-          image: variant.variant_assets?.find(asset => asset.is_primary)?.url || 
-                 variant.variant_assets?.[0]?.url || null,
+          image:
+            variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
+            variant.variant_assets?.[0]?.url ||
+            null,
           size: size,
-          color:
-            variant.attribute?.màu ||
-            variant.attribute?.color,
+          color: variant.attribute?.màu || variant.attribute?.color,
           barcode: variant.barcode,
           attributes: variant.attribute,
           assets: variant.variant_assets,

@@ -27,24 +27,24 @@ const HomeProducts = () => {
   }
 
   // Show error message
-  if (error) {
-    return (
-      <div className="flex flex-col items-center pt-14">
-        <p className="text-2xl font-medium text-left w-full">
-          Popular products
-        </p>
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <p className="text-red-500">Failed to load products: {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="flex flex-col items-center pt-14">
+  //       <p className="text-2xl font-medium text-left w-full">
+  //         Popular products
+  //       </p>
+  //       <div className="flex flex-col items-center justify-center py-20 gap-4">
+  //         <p className="text-red-500">Failed to load products: {error}</p>
+  //         <button
+  //           onClick={() => window.location.reload()}
+  //           className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+  //         >
+  //           Retry
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Show empty state
   if (!products || products.length === 0) {

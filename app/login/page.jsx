@@ -4,6 +4,7 @@ import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
 import { assets } from "@/assets/assets";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 
 const Login = () => {
   const { router, apiUrl, setUserData } = useAppContext();
@@ -34,7 +35,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const { data } = await apiFetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,21 +46,20 @@ const Login = () => {
         }),
       });
 
-      const result = await response.json();
-      console.log("Login result:", result);
-      if (result.access_token && result.roles[0] === "CUSTOMER") {
-        localStorage.setItem("access_token", result.access_token);
-        localStorage.setItem("token", result.access_token);
+      console.log("Login result:", data);
+      if (data.access_token && data.roles && data.roles.includes("CUSTOMER")) {
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("token", data.access_token);
 
-        setUserData(result.access_token);
+        setUserData(data.access_token);
 
         router.push("/");
       } else {
-        setError(result.message || "Login failed. Please try again.");
+        setError("Login failed. Please try again.");
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("An error occurred. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/users/register`, {
+      const { success } = await apiFetch(`${apiUrl}/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,9 +99,7 @@ const Login = () => {
         }),
       });
 
-      const result = await response.json();
-
-      if (result.success || response.ok) {
+      if (success) {
         // Switch to login form after successful registration
         setIsLogin(true);
         setFormData({
@@ -116,11 +114,11 @@ const Login = () => {
           "Registration successful! Please login with your credentials."
         );
       } else {
-        setError(result.message || "Registration failed. Please try again.");
+        setError("Registration failed. Please try again.");
       }
     } catch (err) {
       console.error("Registration error:", err);
-      setError("An error occurred. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

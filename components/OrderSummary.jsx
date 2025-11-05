@@ -1,6 +1,7 @@
 import { useAppContext } from "@/context/AppContext";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { apiFetch, getAuthHeaders } from "@/lib/api";
 
 const OrderSummary = () => {
   const {
@@ -12,6 +13,7 @@ const OrderSummary = () => {
     userData,
     apiUrl,
     getCartDetails,
+    fetchCart,
   } = useAppContext();
 
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -21,6 +23,12 @@ const OrderSummary = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [vouchers, setVouchers] = useState([]);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [voucherError, setVoucherError] = useState("");
+  const [selectedVoucherId, setSelectedVoucherId] = useState("");
 
   const paymentMethods = [
     {
@@ -76,9 +84,8 @@ const OrderSummary = () => {
       }
 
       const data = await response.json();
-
       // Filter active addresses only
-      const activeAddresses = data.filter((addr) => addr.status === true);
+      const activeAddresses = data.data.filter((addr) => addr.status === true);
       setUserAddresses(activeAddresses);
 
       // Set default address if available
@@ -102,8 +109,163 @@ const OrderSummary = () => {
   };
 
   const handleApplyPromo = () => {
-    // Handle promo code application
-    console.log("Applying promo code:", promoCode);
+    setVoucherError("");
+    if (!promoCode.trim()) {
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    const code = promoCode.trim().toLowerCase();
+    const match = vouchers.find((v) => (v.title || "").toLowerCase() === code);
+    if (!match) {
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      setVoucherError("Mã giảm giá không hợp lệ");
+      return;
+    }
+
+    // Validate status and quantity
+    if (match.status === false) {
+      setVoucherError("Mã giảm giá đã hết hạn hoặc không khả dụng");
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    const subtotal = getCartAmount();
+    if (match.min_order_value && subtotal < Number(match.min_order_value)) {
+      setVoucherError(
+        `Đơn tối thiểu ${currency}${Number(
+          match.min_order_value
+        ).toLocaleString()} để áp dụng mã`
+      );
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    // Optional: validate time range if provided (format: "HH:mm:ss DD/MM/YYYY")
+    const parseVnDate = (s) => {
+      if (!s) return null;
+      const [time, date] = s.split(" ");
+      const [hh, mm, ss] = time.split(":").map(Number);
+      const [dd, MM, yyyy] = date.split("/").map(Number);
+      return new Date(yyyy, MM - 1, dd, hh, mm, ss);
+    };
+    const now = new Date();
+    const start = parseVnDate(match.start_date);
+    const end = parseVnDate(match.end_date);
+    if ((start && now < start) || (end && now > end)) {
+      setVoucherError("Mã giảm giá không nằm trong thời gian áp dụng");
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    // Calculate discount
+    let discount = 0;
+    if ((match.discount_type || "").toLowerCase() === "percent") {
+      discount = Math.floor(
+        (subtotal * Number(match.discount_value || 0)) / 100
+      );
+      if (match.max_discount) {
+        discount = Math.min(discount, Number(match.max_discount));
+      }
+    } else if ((match.discount_type || "").toLowerCase() === "fixed") {
+      discount = Number(match.discount_value || 0);
+      if (match.max_discount) {
+        discount = Math.min(discount, Number(match.max_discount));
+      }
+    }
+    discount = Math.max(0, Math.min(discount, subtotal));
+
+    setAppliedVoucher(match);
+    setDiscountAmount(discount);
+  };
+
+  const applyVoucher = (voucher) => {
+    setVoucherError("");
+    if (!voucher) {
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    if (voucher.status === false) {
+      setVoucherError("Mã giảm giá đã hết hạn hoặc không khả dụng");
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    const subtotalCurrent = getCartAmount();
+    if (
+      voucher.min_order_value &&
+      subtotalCurrent < Number(voucher.min_order_value)
+    ) {
+      setVoucherError(
+        `Đơn tối thiểu ${currency}${Number(
+          voucher.min_order_value
+        ).toLocaleString()} để áp dụng mã`
+      );
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    const parseVnDate = (s) => {
+      if (!s) return null;
+      const [time, date] = s.split(" ");
+      const [hh, mm, ss] = time.split(":").map(Number);
+      const [dd, MM, yyyy] = date.split("/").map(Number);
+      return new Date(yyyy, MM - 1, dd, hh, mm, ss);
+    };
+    const now = new Date();
+    const start = parseVnDate(voucher.start_date);
+    const end = parseVnDate(voucher.end_date);
+    if ((start && now < start) || (end && now > end)) {
+      setVoucherError("Mã giảm giá không nằm trong thời gian áp dụng");
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      return;
+    }
+
+    let discount = 0;
+    if ((voucher.discount_type || "").toLowerCase() === "percent") {
+      discount = Math.floor(
+        (subtotalCurrent * Number(voucher.discount_value || 0)) / 100
+      );
+      if (voucher.max_discount) {
+        discount = Math.min(discount, Number(voucher.max_discount));
+      }
+    } else if ((voucher.discount_type || "").toLowerCase() === "fixed") {
+      discount = Number(voucher.discount_value || 0);
+      if (voucher.max_discount) {
+        discount = Math.min(discount, Number(voucher.max_discount));
+      }
+    }
+    discount = Math.max(0, Math.min(discount, subtotalCurrent));
+
+    setAppliedVoucher(voucher);
+    setDiscountAmount(discount);
+    setPromoCode(voucher.title || "");
+  };
+
+  const handleSelectVoucher = (e) => {
+    const value = e.target.value;
+    setSelectedVoucherId(value);
+    if (!value) {
+      setAppliedVoucher(null);
+      setDiscountAmount(0);
+      setPromoCode("");
+      setVoucherError("");
+      return;
+    }
+    const v = vouchers.find((x) => String(x.voucher_id) === value);
+    if (v) {
+      applyVoucher(v);
+    }
   };
 
   const createOrder = async () => {
@@ -149,8 +311,9 @@ const OrderSummary = () => {
         customerId: userData.customer_id || 1,
         addressId: selectedAddress.address_id,
         items: items,
+        voucherId: appliedVoucher ? appliedVoucher.voucher_id : undefined,
+        voucherCode: appliedVoucher ? appliedVoucher.title : undefined,
         // paymentMethod: paymentMethod.apiValue,
-        // voucherCode: promoCode || null,
         // note: ""
       };
 
@@ -198,6 +361,45 @@ const OrderSummary = () => {
   useEffect(() => {
     fetchUserAddresses();
   }, []);
+
+  // Fetch vouchers list
+  useEffect(() => {
+    const loadVouchers = async () => {
+      try {
+        setIsLoadingVouchers(true);
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+          setVouchers([]);
+          return;
+        }
+
+        const { data } = await apiFetch(`${apiUrl}/vouchers/active/list`, {
+          headers: {
+            ...getAuthHeaders(token),
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (Array.isArray(data)) {
+          setVouchers(data);
+        } else {
+          setVouchers([]);
+        }
+      } catch (err) {
+        console.error("Error fetching vouchers:", err);
+        setVouchers([]);
+      } finally {
+        setIsLoadingVouchers(false);
+      }
+    };
+    loadVouchers();
+  }, [apiUrl]);
+
+  // Derived totals
+  const subtotal = getCartAmount();
+  const tax = Math.floor(subtotal * 0.02);
+  const totalAfterDiscount = Math.max(0, subtotal + tax - discountAmount);
 
   return (
     <div className="w-full md:w-96 bg-gray-500/5 p-5">
@@ -284,6 +486,31 @@ const OrderSummary = () => {
           </div>
         </div>
 
+        {/* Available Vouchers */}
+        <div>
+          <label className="text-base font-medium uppercase text-gray-600 block mb-2">
+            Voucher khả dụng
+          </label>
+          <select
+            className="w-full outline-none p-2.5 text-gray-600 border rounded bg-white"
+            onChange={handleSelectVoucher}
+            value={selectedVoucherId}
+            disabled={isLoadingVouchers || vouchers.length === 0}
+          >
+            <option value="">-- Chọn voucher --</option>
+            {vouchers.map((v) => (
+              <option key={v.voucher_id} value={String(v.voucher_id)}>
+                {v.title} {v.description ? `- ${v.description}` : ""}
+              </option>
+            ))}
+          </select>
+          {!isLoadingVouchers && vouchers.length === 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Không có voucher khả dụng
+            </p>
+          )}
+        </div>
+
         {/* Payment Method Selection */}
         <div>
           <label className="text-base font-medium uppercase text-gray-600 block mb-3">
@@ -366,6 +593,20 @@ const OrderSummary = () => {
               Áp Dụng
             </button>
           </div>
+          {isLoadingVouchers && (
+            <p className="text-xs text-gray-500 mt-1">
+              Đang tải mã giảm giá...
+            </p>
+          )}
+          {voucherError && (
+            <p className="text-xs text-red-600 mt-1">{voucherError}</p>
+          )}
+          {appliedVoucher && discountAmount > 0 && (
+            <p className="text-xs text-green-600 mt-1">
+              Đã áp dụng: {appliedVoucher.title} - Giảm {currency}
+              {discountAmount.toLocaleString()}
+            </p>
+          )}
         </div>
 
         <hr className="border-gray-500/30 my-5" />
@@ -378,7 +619,7 @@ const OrderSummary = () => {
             </p>
             <p className="text-gray-800">
               {currency}
-              {getCartAmount().toLocaleString()}
+              {subtotal.toLocaleString()}
             </p>
           </div>
           <div className="flex justify-between">
@@ -389,16 +630,23 @@ const OrderSummary = () => {
             <p className="text-gray-600">Thuế (2%)</p>
             <p className="font-medium text-gray-800">
               {currency}
-              {Math.floor(getCartAmount() * 0.02).toLocaleString()}
+              {tax.toLocaleString()}
             </p>
           </div>
+          {discountAmount > 0 && (
+            <div className="flex justify-between">
+              <p className="text-gray-600">Giảm giá</p>
+              <p className="font-medium text-green-700">
+                - {currency}
+                {discountAmount.toLocaleString()}
+              </p>
+            </div>
+          )}
           <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
             <p>Tổng Cộng</p>
             <p>
               {currency}
-              {(
-                getCartAmount() + Math.floor(getCartAmount() * 0.02)
-              ).toLocaleString()}
+              {totalAfterDiscount.toLocaleString()}
             </p>
           </div>
         </div>

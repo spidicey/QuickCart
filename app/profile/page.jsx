@@ -11,6 +11,7 @@ import {
   Edit,
   Save,
   X,
+  Lock,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -21,6 +22,8 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -28,6 +31,11 @@ export default function ProfilePage() {
     full_name: "",
     birthday: "",
     gender: "",
+  });
+  const [passwordData, setPasswordData] = useState({
+    old_password: "",
+    new_password: "",
+    confirm_new_password: "",
   });
 
   // Decode JWT token to get user ID
@@ -188,6 +196,67 @@ export default function ProfilePage() {
     setIsEditing(false);
     setError("");
     setSuccess("");
+  };
+
+  // Change Password Function
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setError("Bạn phải đăng nhập để đổi mật khẩu");
+      return;
+    }
+
+    // Validate passwords
+    if (passwordData.new_password !== passwordData.confirm_new_password) {
+      setError("Mật khẩu mới và xác nhận mật khẩu không khớp");
+      return;
+    }
+
+    if (passwordData.new_password.length < 6) {
+      setError("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      setError("");
+      setSuccess("");
+
+      const response = await fetch(`${apiUrl}/auth/change-password`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          old_password: passwordData.old_password,
+          new_password: passwordData.new_password,
+          confirm_new_password: passwordData.confirm_new_password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setSuccess("Đổi mật khẩu thành công!");
+        setShowChangePassword(false);
+        setPasswordData({
+          old_password: "",
+          new_password: "",
+          confirm_new_password: "",
+        });
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(result.message || "Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu cũ.");
+      }
+    } catch (err) {
+      console.error("Error changing password:", err);
+      setError("Có lỗi xảy ra khi đổi mật khẩu");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   if (loading) {
@@ -402,6 +471,131 @@ export default function ProfilePage() {
                 </div>
               )}
             </form>
+          </div>
+
+          {/* Change Password Section */}
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Đổi Mật Khẩu
+              </h2>
+              {!showChangePassword && (
+                <button
+                  onClick={() => {
+                    setShowChangePassword(true);
+                    setError("");
+                    setSuccess("");
+                    setPasswordData({
+                      old_password: "",
+                      new_password: "",
+                      confirm_new_password: "",
+                    });
+                  }}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                >
+                  Đổi mật khẩu
+                </button>
+              )}
+            </div>
+
+            {showChangePassword && (
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mật khẩu hiện tại
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={passwordData.old_password}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        old_password: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Nhập mật khẩu hiện tại"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mật khẩu mới
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={passwordData.new_password}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        new_password: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Nhập mật khẩu mới"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Xác nhận mật khẩu mới
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={passwordData.confirm_new_password}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        confirm_new_password: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Nhập lại mật khẩu mới"
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 pt-4 border-t">
+                  <button
+                    type="submit"
+                    disabled={changingPassword}
+                    className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {changingPassword ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Đang đổi...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Xác nhận đổi mật khẩu
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowChangePassword(false);
+                      setPasswordData({
+                        old_password: "",
+                        new_password: "",
+                        confirm_new_password: "",
+                      });
+                      setError("");
+                    }}
+                    disabled={changingPassword}
+                    className="flex items-center gap-2 px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                    Hủy
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* Additional Info */}

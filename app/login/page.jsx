@@ -330,23 +330,10 @@ const Login = () => {
     }
 
     try {
-      // Note: The reset-password endpoint requires authentication
-      // The user needs to be logged in to reset their password
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        setError(
-          "Vui lòng đăng nhập trước để đặt lại mật khẩu. Nếu bạn quên mật khẩu, vui lòng liên hệ hỗ trợ."
-        );
-        setLoading(false);
-        return;
-      }
-
-      const { success } = await apiFetch(`${apiUrl}/auth/reset-password`, {
-        method: "POST",
+      const { success } = await fetch(`${apiUrl}/auth/reset-password`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           email: resetPasswordData.email,

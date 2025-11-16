@@ -1,0 +1,38 @@
+{
+    "name": "order",
+    "request": {
+        "auth": {
+            "type": "bearer",
+            "bearer": [
+                {
+                    "key": "token",
+                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoibGV0aGFuaDI0MDkyMDAyQGdtYWlsLmNvbSIsInJvbGVzIjpbIkNVU1RPTUVSIl0sImlhdCI6MTc2MjY3NDAxMywiZXhwIjoxNzYyNjc3NjEzfQ.evDrWlWgcpvCSpStJ1R2074unN58rqKBguPFnJucuTo",
+                    "type": "string"
+                }
+            ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+            "mode": "raw",
+            "raw": "{\r\n  \"addressId\": 1,\r\n  \"items\": [\r\n    { \"variantId\": 1, \"quantity\": 1 }\r\n  ],\r\n  \"voucher_id\": null,\r\n  \"totalPrice\": 930000\r\n}",
+            "options": {
+                "raw": {
+                    "language": "json"
+                }
+            }
+        },
+        "url": {
+            "raw": "http://localhost:3618/orders",
+            "protocol": "http",
+            "host": [
+                "localhost"
+            ],
+            "port": "3618",
+            "path": [
+                "orders"
+            ]
+        }
+    },
+    "response": []
+},

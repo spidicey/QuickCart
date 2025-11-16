@@ -14,7 +14,6 @@ const Navbar = () => {
   const handleLogout = async () => {
     localStorage.removeItem("access_token"); // Remove both just in case
     setUserData(null); // Close dropdown
-    console.log("Người dùng đã đăng xuất");
     window.location.reload();
   };
 
@@ -74,7 +73,7 @@ const Navbar = () => {
             >
               <Image src={assets.user_icon} alt="biểu tượng người dùng" />
               <span className="max-w-[100px] truncate">
-                {userData.name || "Tài Khoản"}
+                {userData.full_name || userData.username || "Tài Khoản"}
               </span>
             </button>
 
@@ -164,7 +163,7 @@ const Navbar = () => {
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
                 <div className="px-4 py-2 border-b border-gray-200">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {userData.name}
+                    {userData.full_name || userData.username}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
                     {userData.email}

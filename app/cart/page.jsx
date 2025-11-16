@@ -7,138 +7,245 @@ import Navbar from "@/components/Navbar";
 import { useAppContext } from "@/context/AppContext";
 
 const Cart = () => {
-  const {
-    products,
-    router,
-    cartItems,
-    cartData,
-    addToCart,
-    updateCartQuantity,
-    getCartCount,
-    getCartDetails,
-    userData,
-    currency,
-  } = useAppContext();
+  const { products, router, userData, currency, showToast } = useAppContext();
 
-  // Check authentication on component mount
+  const [cartData, setCartData] = useState(null);
+  const [cartDisplay, setCartDisplay] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3618";
+
+  // Fetch cart from API
+  const fetchCart = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+      setCartData(result);
+    } catch (err) {
+      console.error("Error fetching cart:", err);
+      showToast("Không thể tải giỏ hàng", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial cart fetch
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      // Show alert and redirect to login
-      alert("Bạn phải đăng nhập để truy cập giỏ hàng");
-      router.push("/login");
+    if (userData) {
+      fetchCart();
+    } else {
+      setIsLoading(false);
+    }
+  }, [userData]);
+
+  // Transform cart data for display
+  useEffect(() => {
+    if (!cartData || !cartData.cart_detail) {
+      setCartDisplay([]);
       return;
     }
-  }, [router]);
 
-  const [cartDisplay, setCartDisplay] = useState([]);
+    const displayItems = cartData.cart_detail.map((detail) => {
+      const variant = detail.product_variants;
 
-  useEffect(() => {
-    if (userData && cartData) {
-      const details = getCartDetails();
-      console.log("Cart Details:", details);
-      setCartDisplay(
-        details.map((detail) => {
-          const product = products.find(
-            (p) => p.productId === detail.productId
-          );
+      // Find product name from products list
+      const product = products.find((p) => p.productId === variant.product_id);
+      const productName = product?.name || "Sản phẩm";
 
-          // Try to get size from product variant if not already in detail
-          let size = detail.size;
-          if (!size && product?.variants) {
-            const variant = product.variants.find(
-              (v) => v.sku === detail.sku || v.variantId === detail.variantId
-            );
-            if (variant) {
-              size = variant.size;
-            }
-          }
+      // Extract size from attributes
+      const sizeFromAttr =
+        variant.attribute?.size ||
+        variant.attribute?.["kích cỡ"] ||
+        variant.attribute?.["size"];
+      const size =
+        sizeFromAttr || (variant.size_id ? `Size ${variant.size_id}` : null);
 
-          return {
-            ...detail,
-            name: product?.name || "Product",
-            cartKey: `${detail.productId}_${detail.sku}`,
-            size: size || detail.size, // Use found size or keep existing
-          };
-        })
-      );
-    } else {
-      // Use local cart for guest users
-      const localCart = Object.keys(cartItems)
-        .filter((itemId) => cartItems[itemId] > 0)
-        .map((itemId) => {
-          // Handle both productId and productId_sku format
-          const parts = itemId.split("_");
-          const productId = parts[0];
-          const variantSku = parts.length > 1 ? parts.slice(1).join("_") : null;
+      // Get primary image
+      const image =
+        variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
+        variant.variant_assets?.[0]?.url ||
+        null;
 
-          const product = products.find((p) => p._id === productId);
+      return {
+        cartDetailId: detail.cart_detail_id,
+        productId: variant.product_id,
+        variantId: variant.variant_id,
+        sku: variant.sku,
+        name: productName,
+        image: image,
+        price: parseFloat(variant.base_price),
+        quantity: detail.quantity,
+        subPrice: parseFloat(detail.sub_price),
+        size: size,
+        color: variant.attribute?.màu || variant.attribute?.color,
+        barcode: variant.barcode,
+        cartKey: `${variant.product_id}_${variant.sku}`,
+      };
+    });
 
-          if (!product) return null;
+    setCartDisplay(displayItems);
+  }, [cartData, products]);
 
-          let variant = null;
-          let image = product.variants?.[0]?.image || "";
-          let price = product.offerPrice;
-          let size = "";
-          let color = "";
+  // Add item to cart (increment quantity by 1)
+  const handleIncrease = async (variantId) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        showToast("Vui lòng đăng nhập", "error");
+        return;
+      }
 
-          if (variantSku && product.variants) {
-            variant = product.variants.find((v) => v.sku === variantSku);
-            if (variant) {
-              image = variant.image || image;
-              price = variant.offerPrice || variant.price;
-              size = variant.size || "";
-              color = variant.color || "";
-            }
-          }
+      const response = await fetch(`${apiUrl}/cart/add`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variantId: variantId,
+          quantity: 1,
+        }),
+      });
 
-          return {
-            productId: product.productId,
-            sku: variantSku,
-            name: product.name,
-            image: image,
-            price: price,
-            quantity: cartItems[itemId],
-            subPrice: price * cartItems[itemId],
-            size: size,
-            color: color,
-            cartKey: itemId,
-          };
-        })
-        .filter((item) => item !== null);
-
-      setCartDisplay(localCart);
+      const result = await response.json();
+      console.log(result);
+      if (response.ok && result.cart_id) {
+        await fetchCart();
+        showToast("Đã cập nhật giỏ hàng", "success");
+      } else {
+        showToast(result.message || "Không thể thêm vào giỏ hàng", "error");
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      showToast("Có lỗi xảy ra", "error");
     }
-  }, [cartItems, cartData, products, userData]);
-
-  const handleRemove = (cartKey, sku) => {
-    const parts = cartKey.split("_");
-    const productId = parts[0];
-    updateCartQuantity(productId, 0, sku);
   };
 
-  const handleDecrease = (cartKey, sku, currentQuantity) => {
-    const parts = cartKey.split("_");
-    const productId = parts[0];
-    updateCartQuantity(productId, currentQuantity - 1, sku);
+  // Update cart item quantity
+  const handleUpdateQuantity = async (variantId, newQuantity) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        showToast("Vui lòng đăng nhập", "error");
+        return;
+      }
+
+      if (newQuantity <= 0) {
+        await handleRemove(variantId);
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/cart/update`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variantId: variantId,
+          quantity: newQuantity,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.cart_id) {
+        await fetchCart();
+      } else {
+        showToast(result.message || "Không thể cập nhật giỏ hàng", "error");
+      }
+    } catch (err) {
+      console.error("Error updating cart:", err);
+      showToast("Có lỗi xảy ra", "error");
+    }
   };
 
-  const handleIncrease = (cartKey, sku) => {
-    const parts = cartKey.split("_");
-    const productId = parts[0];
-    addToCart(productId, sku);
+  // Remove item from cart
+  const handleRemove = async (variantId) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        showToast("Vui lòng đăng nhập", "error");
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/cart/${variantId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        await fetchCart();
+        showToast("Đã xóa sản phẩm khỏi giỏ hàng", "success");
+      } else {
+        const result = await response.json();
+        showToast(result.message || "Không thể xóa sản phẩm", "error");
+      }
+    } catch (err) {
+      console.error("Error removing from cart:", err);
+      showToast("Có lỗi xảy ra", "error");
+    }
   };
 
-  const handleQuantityChange = (cartKey, sku, newQuantity) => {
-    const parts = cartKey.split("_");
-    const productId = parts[0];
-    const quantity = Math.max(0, Number(newQuantity) || 0);
-    updateCartQuantity(productId, quantity, sku);
+  // Decrease quantity by 1
+  const handleDecrease = async (variantId, currentQuantity) => {
+    const newQuantity = currentQuantity - 1;
+    if (newQuantity <= 0) {
+      await handleRemove(variantId);
+    } else {
+      await handleUpdateQuantity(variantId, newQuantity);
+    }
+  };
+
+  // Handle manual quantity input change
+  const handleQuantityChange = async (variantId, value) => {
+    const quantity = Math.max(0, Number(value) || 0);
+    await handleUpdateQuantity(variantId, quantity);
   };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN").format(price);
   };
+
+  // Redirect to login if not authenticated
+  // useEffect(() => {
+  //   if (!isLoading && !userData) {
+  //     router.push("/login");
+  //   }
+  // }, [isLoading, userData, router]);
+
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-6">
+          <div className="text-center">
+            <p className="text-gray-500">Đang tải giỏ hàng...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // if (!userData) {
+  //   return null; // Will redirect to login
+  // }
+
   if (cartDisplay.length === 0) {
     return (
       <>
@@ -181,7 +288,7 @@ const Cart = () => {
               <span className="font-medium text-orange-600">của bạn</span>
             </p>
             <p className="text-lg md:text-xl text-gray-500/80">
-              {getCartCount()} Sản phẩm
+              {cartDisplay.length} Sản phẩm
             </p>
           </div>
 
@@ -220,9 +327,7 @@ const Cart = () => {
                           </div>
                           <button
                             className="md:hidden text-xs text-orange-600 mt-1 hover:text-orange-700"
-                            onClick={() =>
-                              handleRemove(item.cartKey, item.variantId)
-                            }
+                            onClick={() => handleRemove(item.variantId)}
                           >
                             Xóa
                           </button>
@@ -248,9 +353,7 @@ const Cart = () => {
                           )}
                           <button
                             className="hidden md:block text-xs text-orange-600 mt-1 hover:text-orange-700"
-                            onClick={() =>
-                              handleRemove(item.cartKey, item.variantId)
-                            }
+                            onClick={() => handleRemove(item.variantId)}
                           >
                             Xóa
                           </button>
@@ -264,11 +367,7 @@ const Cart = () => {
                       <div className="flex items-center md:gap-2 gap-1">
                         <button
                           onClick={() =>
-                            handleDecrease(
-                              item.cartKey,
-                              item.variantId,
-                              item.quantity
-                            )
+                            handleDecrease(item.variantId, item.quantity)
                           }
                           className="hover:opacity-70 transition"
                           disabled={item.quantity <= 1}
@@ -283,11 +382,7 @@ const Cart = () => {
                         </button>
                         <input
                           onChange={(e) =>
-                            handleQuantityChange(
-                              item.cartKey,
-                              item.variantId,
-                              e.target.value
-                            )
+                            handleQuantityChange(item.variantId, e.target.value)
                           }
                           type="number"
                           value={item.quantity}
@@ -295,9 +390,7 @@ const Cart = () => {
                           className="w-12 border border-gray-300 text-center rounded py-1 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         />
                         <button
-                          onClick={() =>
-                            handleIncrease(item.cartKey, item.variantId)
-                          }
+                          onClick={() => handleIncrease(item.variantId)}
                           className="hover:opacity-70 transition"
                         >
                           <Image

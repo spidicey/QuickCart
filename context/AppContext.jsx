@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { apiFetch, getAuthHeaders } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 export const AppContext = createContext();
 
@@ -151,7 +151,6 @@ export const AppContextProvider = (props) => {
       setError(null);
 
       const { data } = await apiFetch(`${apiUrl}/products`);
-      console.log(data);
       if (Array.isArray(data)) {
         const transformedProducts = data.map((product) => ({
           _id: product.product_id.toString(),
@@ -188,7 +187,6 @@ export const AppContextProvider = (props) => {
             ? parseFloat(product.variants[0].price)
             : 0,
         }));
-        console.log(transformedProducts);
         setProducts(transformedProducts);
       } else {
         setError("Failed to fetch products");
@@ -254,12 +252,45 @@ export const AppContextProvider = (props) => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      console.log(token);
       if (!token) {
         setUserData(null);
         return;
       }
-      setUserData(token);
+
+      // Decode JWT token to get user ID
+      try {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join("")
+        );
+        const decoded = JSON.parse(jsonPayload);
+        const userId = decoded.sub;
+
+        // Fetch user data from API
+        const response = await fetch(`${apiUrl}/users/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          setUserData(result.data);
+        } else {
+          // If API fails, still set token as userData to maintain auth state
+          setUserData({ token });
+        }
+      } catch (decodeError) {
+        console.error("Error decoding token or fetching user:", decodeError);
+        // Fallback: set token as userData to maintain auth state
+        setUserData({ token });
+      }
     } catch (err) {
       console.error("Error fetching user data:", err);
       setUserData(null);
@@ -272,20 +303,28 @@ export const AppContextProvider = (props) => {
       const token = localStorage.getItem("access_token");
       if (!token) return;
 
-      const { data } = await apiFetch(`${apiUrl}/cart`, {
+      const response = await fetch(`${apiUrl}/cart`, {
         headers: {
-          ...getAuthHeaders(token),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
-      if (data) {
-        setCartData(data);
 
+      const result = await response.json();
+
+      // API returns cart object directly, not wrapped in {success, data}
+      if (result && result.cart_id) {
+        setCartData(result);
+
+        // Build local cart items object for UI state
         const localCart = {};
-        if (data.cart_detail && Array.isArray(data.cart_detail)) {
-          data.cart_detail.forEach((detail) => {
+        if (result.cart_detail && Array.isArray(result.cart_detail)) {
+          result.cart_detail.forEach((detail) => {
             const variant = detail.product_variants;
-            const cartKey = `${variant.product_id}_${variant.sku}`;
-            localCart[cartKey] = detail.quantity;
+            if (variant) {
+              const cartKey = `${variant.product_id}_${variant.sku}`;
+              localCart[cartKey] = detail.quantity;
+            }
           });
         }
         setCartItems(localCart);
@@ -299,7 +338,7 @@ export const AppContextProvider = (props) => {
   const addToCart = async (itemId, variantId = null) => {
     const token = localStorage.getItem("access_token");
 
-    if (token) {
+    if (token && variantId) {
       try {
         const response = await fetch(`${apiUrl}/cart/add`, {
           method: "POST",
@@ -315,13 +354,24 @@ export const AppContextProvider = (props) => {
 
         if (response.ok) {
           await fetchCart();
+          showToast("Đã thêm sản phẩm vào giỏ hàng", "success");
+          return;
+        } else {
+          const errorData = await response.json();
+          showToast(
+            errorData.message || "Không thể thêm vào giỏ hàng",
+            "error"
+          );
           return;
         }
       } catch (err) {
         console.error("Error adding to cart:", err);
+        showToast("Có lỗi xảy ra khi thêm vào giỏ hàng", "error");
+        return;
       }
     }
 
+    // Guest user cart - use localStorage
     let cartData = structuredClone(cartItems);
     const cartKey = variantId ? `${itemId}_${variantId}` : itemId;
 
@@ -331,6 +381,7 @@ export const AppContextProvider = (props) => {
       cartData[cartKey] = 1;
     }
     setCartItems(cartData);
+    showToast("Đã thêm sản phẩm vào giỏ hàng", "success");
   };
 
   // Update cart quantity (API + local state)
@@ -421,13 +472,25 @@ export const AppContextProvider = (props) => {
 
   const getCartDetails = () => {
     if (cartData && cartData.cart_detail) {
+      console.log(cartData);
       return cartData.cart_detail.map((detail) => {
         const variant = detail.product_variants;
-        // Try to get size from various possible locations
-        const size =
+
+        // Extract size from attribute object - check common Vietnamese/English keys
+        const sizeFromAttr =
           variant.attribute?.size ||
-          variant.size ||
-          (variant.size_id ? `Size ID: ${variant.size_id}` : null);
+          variant.attribute?.["kích cỡ"] ||
+          variant.attribute?.["size"];
+
+        // Fallback to size_id if no size string found
+        const size =
+          sizeFromAttr || (variant.size_id ? `Size ${variant.size_id}` : null);
+
+        // Get primary image or first available image
+        const image =
+          variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
+          variant.variant_assets?.[0]?.url ||
+          null;
 
         return {
           productId: variant.product_id,
@@ -436,10 +499,7 @@ export const AppContextProvider = (props) => {
           quantity: detail.quantity,
           price: parseFloat(variant.base_price),
           subPrice: parseFloat(detail.sub_price),
-          image:
-            variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
-            variant.variant_assets?.[0]?.url ||
-            null,
+          image: image,
           size: size,
           color: variant.attribute?.màu || variant.attribute?.color,
           barcode: variant.barcode,

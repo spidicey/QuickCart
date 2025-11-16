@@ -12,7 +12,6 @@ const OrderSummary = () => {
     cartData,
     userData,
     apiUrl,
-    getCartDetails,
     fetchCart,
   } = useAppContext();
 
@@ -84,8 +83,10 @@ const OrderSummary = () => {
       }
 
       const data = await response.json();
-      // Filter active addresses only
-      const activeAddresses = data.data.filter((addr) => addr.status === true);
+      // Filter active addresses only - API now returns direct array
+      const activeAddresses = Array.isArray(data)
+        ? data.filter((addr) => addr.status === true)
+        : [];
       setUserAddresses(activeAddresses);
 
       // Set default address if available
@@ -283,11 +284,9 @@ const OrderSummary = () => {
       alert("Vui lòng đăng nhập để đặt hàng");
       return;
     }
-
+    console.log(cartData);
     // Get cart details
-    const cartDetails = getCartDetails();
-
-    if (!cartDetails || cartDetails.length === 0) {
+    if (!cartData?.cart_detail || cartData.cart_detail.length === 0) {
       alert("Giỏ hàng trống");
       return;
     }
@@ -296,31 +295,25 @@ const OrderSummary = () => {
 
     try {
       // Prepare order items from cart details
-      const items = cartDetails.map((item) => ({
-        variantId: item.variantId,
+      const items = cartData.cart_detail.map((item) => ({
+        variantId: item.variant_id,
         quantity: item.quantity,
       }));
 
-      // Get selected payment method value
-      const paymentMethod = paymentMethods.find(
-        (m) => m.id === selectedPayment
-      );
+      // Calculate total price after discount
+      const finalTotalPrice = totalAfterDiscount;
 
       // Prepare order data with the selected address ID
       const orderData = {
-        customerId: userData.customer_id || 1,
         addressId: selectedAddress.address_id,
         items: items,
-        voucherId: appliedVoucher ? appliedVoucher.voucher_id : undefined,
-        voucherCode: appliedVoucher ? appliedVoucher.title : undefined,
-        // paymentMethod: paymentMethod.apiValue,
-        // note: ""
+        voucher_id: appliedVoucher ? appliedVoucher.voucher_id : null,
+        totalPrice: finalTotalPrice,
       };
 
-      console.log("Creating order with:", orderData);
       const token = localStorage.getItem("access_token");
       if (!token) return;
-
+      console.log("1123", orderData);
       const response = await fetch(`${apiUrl}/orders`, {
         method: "POST",
         headers: {
@@ -332,19 +325,17 @@ const OrderSummary = () => {
 
       const result = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !result.success) {
         throw new Error(result.message || "Không thể tạo đơn hàng");
       }
 
-      console.log("Order created successfully:", result);
-
       // Handle different payment methods
-      if (selectedPayment === "vnpay" && result.qrUrl) {
+      if (selectedPayment === "vnpay" && result.payment?.qrUrl) {
         // Redirect to VNPay payment page
-        window.location.href = result.qrUrl;
-      } else if (selectedPayment === "momo" && result.payUrl) {
+        window.location.href = result.payment.qrUrl;
+      } else if (selectedPayment === "momo" && result.payment?.payUrl) {
         // Redirect to MoMo payment page
-        window.location.href = result.payUrl;
+        window.location.href = result.payment.payUrl;
       } else {
         // Clear cart after successful order
         await fetchCart();
@@ -360,6 +351,7 @@ const OrderSummary = () => {
 
   useEffect(() => {
     fetchUserAddresses();
+    fetchCart();
   }, []);
 
   // Fetch vouchers list
@@ -396,10 +388,19 @@ const OrderSummary = () => {
     loadVouchers();
   }, [apiUrl]);
 
-  // Derived totals
-  const subtotal = getCartAmount();
-  const tax = Math.floor(subtotal * 0.02);
-  const totalAfterDiscount = Math.max(0, subtotal + tax - discountAmount);
+  // Calculate subtotal from cart_detail by summing sub_price
+  const subtotal =
+    cartData?.cart_detail && Array.isArray(cartData.cart_detail)
+      ? cartData.cart_detail.reduce(
+          (sum, item) => sum + parseFloat(item.sub_price || 0),
+          0
+        )
+      : getCartAmount();
+  const shippingFee = 30000;
+  const totalAfterDiscount = Math.max(
+    0,
+    subtotal + shippingFee - discountAmount
+  );
 
   return (
     <div className="w-full md:w-96 bg-gray-500/5 p-5">
@@ -407,6 +408,63 @@ const OrderSummary = () => {
         Tóm Tắt Đơn Hàng
       </h2>
       <hr className="border-gray-500/30 my-5" />
+
+      {/* Cart Items Display */}
+      {cartData && cartData.cart_detail && cartData.cart_detail.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-base font-medium uppercase text-gray-600 mb-3">
+            Sản Phẩm Trong Giỏ
+          </h3>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {cartData.cart_detail.map((item) => {
+              const variant = item.product_variants;
+              const primaryImage =
+                variant.variant_assets?.find((asset) => asset.is_primary)
+                  ?.url || variant.variant_assets?.[0]?.url;
+
+              return (
+                <div
+                  key={item.cart_detail_id}
+                  className="flex gap-3 p-3 bg-white rounded border border-gray-200"
+                >
+                  {primaryImage && (
+                    <Image
+                      src={primaryImage}
+                      alt={variant.sku}
+                      width={60}
+                      height={60}
+                      className="object-cover rounded"
+                      unoptimized
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      SKU: {variant.sku}
+                    </p>
+                    <div className="flex gap-2 text-xs text-gray-600 mt-1">
+                      {variant.attribute?.màu && (
+                        <span>Màu: {variant.attribute.màu}</span>
+                      )}
+                      {variant.size_id && <span>Size: {variant.size_id}</span>}
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-gray-500">
+                        SL: {item.quantity}
+                      </span>
+                      <span className="text-sm font-medium text-orange-600">
+                        {currency}
+                        {parseFloat(item.sub_price).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <hr className="border-gray-500/30 my-5" />
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Address Selection */}
         <div>
@@ -624,13 +682,9 @@ const OrderSummary = () => {
           </div>
           <div className="flex justify-between">
             <p className="text-gray-600">Phí Vận Chuyển</p>
-            <p className="font-medium text-gray-800">Miễn Phí</p>
-          </div>
-          <div className="flex justify-between">
-            <p className="text-gray-600">Thuế (2%)</p>
             <p className="font-medium text-gray-800">
               {currency}
-              {tax.toLocaleString()}
+              {shippingFee.toLocaleString()}
             </p>
           </div>
           {discountAmount > 0 && (

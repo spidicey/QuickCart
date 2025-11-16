@@ -154,8 +154,6 @@ const Login = () => {
         }),
       });
 
-      console.log("Verify response:", verifyResponse);
-
       // If OTP verification successful, proceed with registration
       if (verifyResponse && verifyResponse.success) {
         try {

@@ -44,7 +44,6 @@ const Login = () => {
       });
 
       const result = await response.json();
-      console.log("Login result:", result);
       if (result.success && result.roles === "CUSTOMER") {
         localStorage.setItem("token", result.token);
         setUserData(result.user);

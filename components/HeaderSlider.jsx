@@ -52,8 +52,7 @@ const HeaderSlider = () => {
   };
 
   const handleShopNow = (id) => {
-    console.log("Navigating to lookbook:", id);
-      router.push(`/lookbook/${id}`);
+    router.push(`/lookbook/${id}`);
   };
 
   return (

@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const Chatbot = () => {
   const { apiUrl } = useAppContext();
@@ -99,12 +101,36 @@ const Chatbot = () => {
 
       const data = await response.json();
 
-      if (data.success && data.data && data.data.output) {
+      if (data.success && data.data) {
+        // Parse the response - handle stringified text with surrounding braces
+        let botResponse;
+
+        if (typeof data.data === 'string') {
+          // The API returns text wrapped in braces like "{\nText here\n}"
+          // Remove the surrounding { } and trim
+          const trimmed = data.data.trim();
+          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            // Remove first { and last }
+            botResponse = trimmed.slice(1, -1).trim();
+          } else {
+            // Use the string as-is
+            botResponse = data.data;
+          }
+        } else if (data.data.output) {
+          // If data.data is an object with output property
+          botResponse = data.data.output;
+        } else {
+          // Otherwise use data.data directly (might be object, convert to string)
+          botResponse = typeof data.data === 'object'
+            ? JSON.stringify(data.data, null, 2)
+            : data.data;
+        }
+
         setMessages((prev) => [
           ...prev,
           {
             type: "bot",
-            text: data.data.output,
+            text: botResponse,
             timestamp: new Date(),
           },
         ]);
@@ -187,7 +213,58 @@ const Chatbot = () => {
                       : "bg-white text-gray-800 border border-gray-200"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  {message.type === "user" ? (
+                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  ) : (
+                    <div className="text-sm prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          // Custom styling for markdown elements
+                          p: ({ node, ...props }) => (
+                            <p className="mb-2 last:mb-0" {...props} />
+                          ),
+                          a: ({ node, ...props }) => (
+                            <a
+                              className="text-blue-600 hover:underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              {...props}
+                            />
+                          ),
+                          ul: ({ node, ...props }) => (
+                            <ul className="list-disc ml-4 mb-2" {...props} />
+                          ),
+                          ol: ({ node, ...props }) => (
+                            <ol className="list-decimal ml-4 mb-2" {...props} />
+                          ),
+                          li: ({ node, ...props }) => (
+                            <li className="mb-1" {...props} />
+                          ),
+                          code: ({ node, inline, ...props }) =>
+                            inline ? (
+                              <code
+                                className="bg-gray-100 px-1 rounded text-red-600"
+                                {...props}
+                              />
+                            ) : (
+                              <code
+                                className="block bg-gray-100 p-2 rounded mb-2 overflow-x-auto"
+                                {...props}
+                              />
+                            ),
+                          strong: ({ node, ...props }) => (
+                            <strong className="font-bold" {...props} />
+                          ),
+                          em: ({ node, ...props }) => (
+                            <em className="italic" {...props} />
+                          ),
+                        }}
+                      >
+                        {message.text}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

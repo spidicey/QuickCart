@@ -1,38 +1,225 @@
 {
-    "name": "order",
-    "request": {
-        "auth": {
-            "type": "bearer",
-            "bearer": [
-                {
-                    "key": "token",
-                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoibGV0aGFuaDI0MDkyMDAyQGdtYWlsLmNvbSIsInJvbGVzIjpbIkNVU1RPTUVSIl0sImlhdCI6MTc2MjY3NDAxMywiZXhwIjoxNzYyNjc3NjEzfQ.evDrWlWgcpvCSpStJ1R2074unN58rqKBguPFnJucuTo",
-                    "type": "string"
-                }
-            ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-            "mode": "raw",
-            "raw": "{\r\n  \"addressId\": 1,\r\n  \"items\": [\r\n    { \"variantId\": 1, \"quantity\": 1 }\r\n  ],\r\n  \"voucher_id\": null,\r\n  \"totalPrice\": 930000\r\n}",
-            "options": {
-                "raw": {
-                    "language": "json"
-                }
-            }
-        },
-        "url": {
-            "raw": "http://localhost:3618/orders",
-            "protocol": "http",
-            "host": [
-                "localhost"
-            ],
-            "port": "3618",
-            "path": [
-                "orders"
-            ]
-        }
-    },
-    "response": []
-},
+	"name": "Address Request",
+	"item": [
+		{
+			"name": "getAddressByUserId",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoia2hhY2gxQGRlbW8udm4iLCJyb2xlcyI6WyJDVVNUT01FUiJdLCJpYXQiOjE3NjM2MTM0NzcsImV4cCI6MTc2MzYxNzA3N30.t5fMNo4RtdHk0hl8cJf7fXByFKlVrk3fqay198bNX1o",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3618/addresses",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3618",
+					"path": [
+						"addresses"
+					]
+				}
+			},
+			"response": [
+				{
+					"address_id": 1,
+					"customer_id": 1,
+					"consignee_name": "Nguyễn Văn A",
+					"consignee_phone": "0900000003",
+					"province": "TP.Hà Nội",
+					"province_id": "201",
+					"district": "Quận Nam Từ Liêm",
+					"district_id": "3440",
+					"ward": "Phường Xuân Phương",
+					"ward_id": "13010",
+					"street": "Phố Nguyễn Tri Phương",
+					"house_num": "10",
+					"is_default": true,
+					"status": true,
+					"created_at": "2025-11-21T13:01:27.000Z",
+					"updated_at": "2025-11-21T13:01:27.000Z"
+				},
+				{
+					"address_id": 2,
+					"customer_id": 1,
+					"consignee_name": "Lê Thị C",
+					"consignee_phone": "0900000005",
+					"province": "TP.Hà Nội",
+					"province_id": "201",
+					"district": "Quận Ba Đình",
+					"district_id": "1484",
+					"ward": "Phường Phúc Xá",
+					"ward_id": "1A0110",
+					"street": "Phố Nguyễn Tri Phương",
+					"house_num": "10",
+					"is_default": false,
+					"status": true,
+					"created_at": "2025-11-21T13:01:27.000Z",
+					"updated_at": "2025-11-21T13:01:27.000Z"
+				}
+			]
+		},
+		{
+			"name": "addNewAddress (CUSTOMER)",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoia2hhY2gxQGRlbW8udm4iLCJyb2xlcyI6WyJDVVNUT01FUiJdLCJpYXQiOjE3NjM2MTM0NzcsImV4cCI6MTc2MzYxNzA3N30.t5fMNo4RtdHk0hl8cJf7fXByFKlVrk3fqay198bNX1o",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"consignee_name\": \"Nguyễn Văn A\",\r\n  \"consignee_phone\": \"0905123456\",\r\n\r\n  \"province\": \"Hồ Chí Minh\",\r\n  \"province_id\": 202,\r\n\r\n  \"district\": \"Quận 1\",\r\n  \"district_id\": 1444,\r\n\r\n  \"ward\": \"Phường Bến Nghé\",\r\n  \"ward_id\": \"20314\",\r\n\r\n  \"street\": \"Đường Lê Lợi\",\r\n  \"house_num\": \"123/5\",\r\n\r\n  \"is_default\": true\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3618/addresses",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3618",
+					"path": [
+						"addresses"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "updateAddress",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoia2hhY2gxQGRlbW8udm4iLCJyb2xlcyI6WyJDVVNUT01FUiJdLCJpYXQiOjE3NjM2MTUzNzYsImV4cCI6MTc2MzYxODk3Nn0.5Jxj4xP2j6GB8LIj6jVfUBNbRj-qrPKCMHRkjezyiP4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"consignee_name\": \"Trần Văn B\",\r\n  \"consignee_phone\": \"0911222333\",\r\n\r\n  \"province\": \"Hồ Chí Minh\",\r\n  \"province_id\": \"202\",\r\n\r\n  \"district\": \"Gò Vấp\",\r\n  \"district_id\": \"1442\",\r\n\r\n  \"ward\": \"Phường 5\",\r\n  \"ward_id\": \"20373\",\r\n\r\n  \"street\": \"Nguyễn Kiệm\",\r\n  \"house_num\": \"25/7B\",\r\n\r\n  \"is_default\": false\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3618/addresses/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3618",
+					"path": [
+						"addresses",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "deleteAddress",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoia2hhY2gxQGRlbW8udm4iLCJyb2xlcyI6WyJDVVNUT01FUiJdLCJpYXQiOjE3NjM2MTUzNzYsImV4cCI6MTc2MzYxODk3Nn0.5Jxj4xP2j6GB8LIj6jVfUBNbRj-qrPKCMHRkjezyiP4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3618/addresses/5",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3618",
+					"path": [
+						"addresses",
+						"5"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getAddressById",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjMsImVtYWlsIjoia2hhY2gxQGRlbW8udm4iLCJyb2xlcyI6WyJDVVNUT01FUiJdLCJpYXQiOjE3NjM2MTgwMTUsImV4cCI6MTc2MzYyMTYxNX0.SKaSSqQn91Lz_1yIR_l7nBRkFTHph55iZx30KbtHCe4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3618/addresses/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3618",
+					"path": [
+						"addresses",
+						"1"
+					]
+				}
+			},
+			"response": {
+				"address_id": 1,
+				"customer_id": 1,
+				"consignee_name": "Nguyễn Văn A",
+				"consignee_phone": "0900000003",
+				"province": "TP.Hà Nội",
+				"province_id": "201",
+				"district": "Quận Nam Từ Liêm",
+				"district_id": "3440",
+				"ward": "Phường Xuân Phương",
+				"ward_id": "13010",
+				"street": "Phố Nguyễn Tri Phương",
+				"house_num": "10",
+				"is_default": true,
+				"status": true,
+				"created_at": "2025-11-21T13:01:27.000Z",
+				"updated_at": "2025-11-21T13:01:27.000Z"
+			}
+		}
+	]
+}

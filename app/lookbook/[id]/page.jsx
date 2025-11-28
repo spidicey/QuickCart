@@ -27,7 +27,6 @@ export default function LookbookDetail() {
       setLookbook(data);
 
       if (data && data.items) {
-        // Group variants by product
         const grouped = {};
         data.items.forEach((item) => {
           const productId = item.variant.productId;

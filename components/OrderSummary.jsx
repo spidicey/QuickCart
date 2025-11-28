@@ -28,6 +28,7 @@ const OrderSummary = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [voucherError, setVoucherError] = useState("");
   const [selectedVoucherId, setSelectedVoucherId] = useState("");
+  const [isDeletingAddress, setIsDeletingAddress] = useState(null);
 
   const paymentMethods = [
     {
@@ -107,6 +108,59 @@ const OrderSummary = () => {
   const handleAddressSelect = (address) => {
     setSelectedAddress(address);
     setIsDropdownOpen(false);
+  };
+
+  const handleEditAddress = (e, addressId) => {
+    e.stopPropagation();
+    setIsDropdownOpen(false);
+    router.push(`/add-address?edit=${addressId}`);
+  };
+
+  const handleDeleteAddress = async (e, addressId) => {
+    e.stopPropagation();
+
+    const confirmed = window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này?");
+    if (!confirmed) return;
+
+    setIsDeletingAddress(addressId);
+
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        alert("Vui lòng đăng nhập");
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/addresses/${addressId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || "Không thể xóa địa chỉ");
+      }
+
+      // Remove from local state
+      setUserAddresses((prev) =>
+        prev.filter((addr) => addr.address_id !== addressId)
+      );
+
+      // Clear selected if it was the deleted one
+      if (selectedAddress?.address_id === addressId) {
+        setSelectedAddress(null);
+      }
+
+      alert("Xóa địa chỉ thành công!");
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      alert(error.message || "Có lỗi xảy ra khi xóa địa chỉ");
+    } finally {
+      setIsDeletingAddress(null);
+    }
   };
 
   const handleApplyPromo = () => {
@@ -328,19 +382,10 @@ const OrderSummary = () => {
       if (!response.ok || !result.success) {
         throw new Error(result.message || "Không thể tạo đơn hàng");
       }
-
-      // Handle different payment methods
-      if (selectedPayment === "vnpay" && result.payment?.qrUrl) {
-        // Redirect to VNPay payment page
-        window.location.href = result.payment.qrUrl;
-      } else if (selectedPayment === "momo" && result.payment?.payUrl) {
-        // Redirect to MoMo payment page
-        window.location.href = result.payment.payUrl;
-      } else {
-        // Clear cart after successful order
-        await fetchCart();
-        router.push(`/order-success/${result.order.order_id}`);
-      }
+      console.log(result);
+      window.location.href = result.payment.qrUrl;
+      await fetchCart();
+      // router.push(`/order-success/${result.order.order_id}`);
     } catch (error) {
       console.error("Error creating order:", error);
       alert(error.message || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.");
@@ -515,20 +560,91 @@ const OrderSummary = () => {
                       className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer"
                       onClick={() => handleAddressSelect(address)}
                     >
-                      <div>
-                        <p className="font-medium">{address.consignee_name}</p>
-                        <p className="text-xs text-gray-600">
-                          {address.house_num} {address.street}, {address.ward},{" "}
-                          {address.district}, {address.province}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {address.consignee_phone}
-                        </p>
-                        {address.is_default && (
-                          <span className="text-xs text-orange-600 font-medium">
-                            (Mặc định)
-                          </span>
-                        )}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium">{address.consignee_name}</p>
+                          <p className="text-xs text-gray-600">
+                            {address.house_num} {address.street}, {address.ward},{" "}
+                            {address.district}, {address.province}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {address.consignee_phone}
+                          </p>
+                          {address.is_default && (
+                            <span className="text-xs text-orange-600 font-medium">
+                              (Mặc định)
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-1 ml-2">
+                          <button
+                            type="button"
+                            onClick={(e) => handleEditAddress(e, address.address_id)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
+                            title="Chỉnh sửa"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteAddress(e, address.address_id)}
+                            disabled={isDeletingAddress === address.address_id}
+                            className={`p-1.5 text-red-600 hover:bg-red-50 rounded transition ${
+                              isDeletingAddress === address.address_id
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                            title="Xóa"
+                          >
+                            {isDeletingAddress === address.address_id ? (
+                              <svg
+                                className="w-4 h-4 animate-spin"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                />
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </li>
                   ))

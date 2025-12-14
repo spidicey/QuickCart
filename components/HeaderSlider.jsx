@@ -9,36 +9,32 @@ const HeaderSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Transform lookbooks into slider data format
-  const sliderData = lookbooks.length > 0 
-    ? lookbooks.map(lookbook => ({
-        id: lookbook.lookbookId,
-        title: lookbook.title,
-        description: lookbook.description,
-        slug: lookbook.slug,
-        imgSrc: lookbook.image,
-        itemCount: lookbook.items?.length || 0
-      }))
-    : [
-        // Fallback static data if no lookbooks available
-        {
-          id: 1,
-          title: "Experience Pure Sound - Your Perfect Headphones Awaits!",
-          description: "Limited Time Offer 30% Off",
-          imgSrc: assets.header_headphone_image,
-        },
-        {
-          id: 2,
-          title: "Next-Level Gaming Starts Here - Discover PlayStation 5 Today!",
-          description: "Hurry up only few lefts!",
-          imgSrc: assets.header_playstation_image,
-        },
-        {
-          id: 3,
-          title: "Power Meets Elegance - Apple MacBook Pro is Here for you!",
-          description: "Exclusive Deal 40% Off",
-          imgSrc: assets.header_macbook_image,
-        },
-      ];
+  const sliderData =
+    lookbooks.length > 0
+      ? lookbooks.map((lookbook) => ({
+          id: lookbook.lookbookId,
+          title: lookbook.title,
+          description: lookbook.description,
+          slug: lookbook.slug,
+          imgSrc: lookbook.image,
+          itemCount: lookbook.items?.length || 0,
+        }))
+      : [
+          {
+            id: 1,
+            title: "Adidas Lookbook Spring 2025",
+            // description: "Limited Time Offer 30% Off",
+            imgSrc:
+              "https://brand.assets.adidas.com/image/upload/f_auto,q_auto:best,fl_lossy/lb_mh_d_329_992612_587f84c801.jpg",
+          },
+          {
+            id: 2,
+            title: "Uniqlo Lookbook Spring 2025",
+            // description: "Hurry up only few lefts!",
+            imgSrc:
+              "https://external-preview.redd.it/ZwPNc_39Kk3zjbAEvLtDXQbL_WMUeDU-ZHIt7MGO8nM.jpg?width=640&crop=smart&auto=webp&s=a8d44a5aed75372ce0e851b373eba291a48850e6",
+          },
+        ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -83,21 +79,21 @@ const HeaderSlider = () => {
               <div className="flex items-center mt-4 md:mt-6">
                 {slide.slug ? (
                   <>
-                    <button 
+                    <button
                       onClick={() => handleShopNow(slide.id)}
                       className="md:px-10 px-7 md:py-2.5 py-2 bg-orange-600 rounded-full text-white font-medium hover:bg-orange-700 transition"
                     >
                       Mua ngay
                     </button>
-                    <Link 
+                    <Link
                       href={`/lookbook/${slide.id}`}
                       className="group flex items-center gap-2 px-6 py-2.5 font-medium"
                     >
                       Xem thêm
-                      <Image 
-                        className="group-hover:translate-x-1 transition" 
-                        src={assets.arrow_icon} 
-                        alt="arrow_icon" 
+                      <Image
+                        className="group-hover:translate-x-1 transition"
+                        src={assets.arrow_icon}
+                        alt="arrow_icon"
                       />
                     </Link>
                   </>
@@ -108,10 +104,10 @@ const HeaderSlider = () => {
                     </button>
                     <button className="group flex items-center gap-2 px-6 py-2.5 font-medium">
                       Xem thêm
-                      <Image 
-                        className="group-hover:translate-x-1 transition" 
-                        src={assets.arrow_icon} 
-                        alt="arrow_icon" 
+                      <Image
+                        className="group-hover:translate-x-1 transition"
+                        src={assets.arrow_icon}
+                        alt="arrow_icon"
                       />
                     </button>
                   </>

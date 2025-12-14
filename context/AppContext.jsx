@@ -15,6 +15,9 @@ export const AppContextProvider = (props) => {
   const router = useRouter();
 
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [lookbooks, setLookbooks] = useState([]);
   const [userData, setUserData] = useState(false);
   const [isSeller, setIsSeller] = useState(true);
@@ -246,6 +249,195 @@ export const AppContextProvider = (props) => {
     } catch (err) {
       console.error("Error fetching product:", err);
       return null;
+    }
+  };
+
+  // Fetch filtered products from API
+  const fetchFilteredProducts = async (filters = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+      if (filters.keyword) queryParams.append("keyword", filters.keyword);
+      if (filters.brandIds && filters.brandIds.length > 0) {
+        filters.brandIds.forEach((id) => queryParams.append("brand_id", id));
+      }
+      if (filters.categoryIds && filters.categoryIds.length > 0) {
+        filters.categoryIds.forEach((id) =>
+          queryParams.append("category_id", id)
+        );
+      }
+      if (filters.minPrice) queryParams.append("min_price", filters.minPrice);
+      if (filters.maxPrice) queryParams.append("max_price", filters.maxPrice);
+
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `${apiUrl}/products/filter?${queryString}`
+        : `${apiUrl}/products`;
+
+      // Use direct fetch instead of apiFetch since this endpoint returns array directly
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (Array.isArray(data)) {
+        const transformedProducts = data.map((product) => ({
+          _id: product.product_id.toString(),
+          productId: product.product_id,
+          name: product.product_name,
+          slug: product.slug,
+          description: product.description,
+          brand: product.brands?.brand_name || product.brand?.brand_name,
+          brandId: product.brands?.brand_id || product.brand?.brand_id,
+          category:
+            product.categories?.category_name || product.category?.category_name,
+          categoryId:
+            product.categories?.category_id || product.category?.category_id,
+          status: product.status,
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
+          variants:
+            product.product_variants?.map((variant) => ({
+              variantId: variant.variant_id,
+              sku: variant.sku,
+              barcode: variant.barcode,
+              price: parseFloat(variant.base_price),
+              offerPrice: parseFloat(variant.base_price),
+              quantity: variant.quantity,
+              status: variant.status,
+              size:
+                variant.attribute?.size ||
+                variant.size ||
+                (variant.size_id ? `Size ${variant.size_id}` : null),
+              gender: variant.attribute?.gender || variant.gender,
+              sizeType: variant.size_type,
+              attributes: variant.attribute || variant.attributes,
+              color: variant.attribute?.màu || variant.attribute?.color,
+              assets:
+                variant.variant_assets?.map((asset) => ({
+                  assetId: asset.asset_id,
+                  url: asset.url,
+                  type: asset.type,
+                  isPrimary: asset.is_primary,
+                })) || [],
+              primaryImage:
+                variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
+                variant.variant_assets?.[0]?.url,
+              image:
+                variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
+                variant.variant_assets?.[0]?.url,
+            })) ||
+            product.variants?.map((variant) => ({
+              variantId: variant.variant_id,
+              sku: variant.sku,
+              barcode: variant.barcode,
+              price: parseFloat(variant.price),
+              offerPrice: parseFloat(variant.price),
+              quantity: variant.quantity,
+              status: variant.status,
+              size: variant.size,
+              gender: variant.gender,
+              sizeType: variant.size_type,
+              attributes: variant.attributes,
+              color: variant.color,
+              assets: variant.assets,
+              primaryImage: variant.primary_image,
+              image: variant.primary_image,
+            })) ||
+            [],
+          offerPrice:
+            product.product_variants?.[0]?.base_price ||
+            product.variants?.[0]?.price
+              ? parseFloat(
+                  product.product_variants?.[0]?.base_price ||
+                    product.variants[0].price
+                )
+              : 0,
+        }));
+        setFilteredProducts(transformedProducts);
+        return transformedProducts;
+      } else {
+        setError("Failed to fetch filtered products");
+        return [];
+      }
+    } catch (err) {
+      console.error("Error fetching filtered products:", err);
+      setError(err.message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch all brands from API
+  const fetchBrands = async () => {
+    try {
+      const { data } = await apiFetch(`${apiUrl}/brands`);
+      if (Array.isArray(data)) {
+        const transformedBrands = data
+          .filter((brand) => brand.status) // Only active brands
+          .map((brand) => ({
+            brandId: brand.brand_id,
+            brandName: brand.brand_name,
+            slug: brand.slug,
+            description: brand.description,
+            logoUrl: brand.logo_url,
+          }))
+          .sort((a, b) => a.brandName.localeCompare(b.brandName));
+        setBrands(transformedBrands);
+      }
+    } catch (err) {
+      console.error("Error fetching brands:", err);
+    }
+  };
+
+  // Fetch all categories from API
+  const fetchCategories = async () => {
+    try {
+      const { data } = await apiFetch(`${apiUrl}/categories`);
+      if (Array.isArray(data)) {
+        // Flatten categories (parent + children) for filter display
+        const allCategories = [];
+        data.forEach((parent) => {
+          if (parent.status) {
+            // Add parent category
+            allCategories.push({
+              categoryId: parent.category_id,
+              categoryName: parent.category_name,
+              slug: parent.slug,
+              parentId: parent.parent_id,
+              description: parent.description,
+            });
+            // Add children categories
+            if (parent.children && Array.isArray(parent.children)) {
+              parent.children.forEach((child) => {
+                if (child.status) {
+                  allCategories.push({
+                    categoryId: child.category_id,
+                    categoryName: child.category_name,
+                    slug: child.slug,
+                    parentId: child.parent_id,
+                    description: child.description,
+                  });
+                }
+              });
+            }
+          }
+        });
+        setCategories(
+          allCategories.sort((a, b) =>
+            a.categoryName.localeCompare(b.categoryName)
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
     }
   };
 
@@ -523,6 +715,8 @@ export const AppContextProvider = (props) => {
   useEffect(() => {
     fetchProductData();
     fetchLookbooks();
+    fetchBrands();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -568,8 +762,15 @@ export const AppContextProvider = (props) => {
     setUserData,
     fetchUserData,
     products,
+    filteredProducts,
+    setFilteredProducts,
     fetchProductData,
     fetchProductById,
+    fetchFilteredProducts,
+    brands,
+    fetchBrands,
+    categories,
+    fetchCategories,
     lookbooks,
     fetchLookbooks,
     fetchLookbookById,

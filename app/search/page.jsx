@@ -8,7 +8,7 @@ import FilterSidebar from "@/components/FilterSidebar";
 import MobileFilterToggle from "@/components/MobileFilterToggle";
 import { useAppContext } from "@/context/AppContext";
 
-const AllProducts = () => {
+const SearchPage = () => {
   const {
     products,
     filteredProducts,
@@ -27,11 +27,11 @@ const AllProducts = () => {
     maxPrice: "",
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [displayProducts, setDisplayProducts] = useState(products);
+  const [displayProducts, setDisplayProducts] = useState([]);
 
   // Initialize filters from URL on mount
   useEffect(() => {
-    const keyword = searchParams.get("keyword") || "";
+    const keyword = searchParams.get("keyword") || searchParams.get("q") || "";
     const brandIdsParam = searchParams.getAll("brand_id");
     const categoryIdsParam = searchParams.getAll("category_id");
     const minPrice = searchParams.get("min_price") || "";
@@ -47,7 +47,7 @@ const AllProducts = () => {
 
     setFilters(initialFilters);
 
-    // If there are filters in URL, fetch filtered products
+    // Fetch filtered products if there's a keyword or any filter
     if (
       keyword ||
       brandIdsParam.length > 0 ||
@@ -59,7 +59,7 @@ const AllProducts = () => {
     }
   }, []);
 
-  // Update displayed products based on filtered or all products
+  // Update displayed products based on filtered products
   useEffect(() => {
     const hasActiveFilters =
       filters.keyword ||
@@ -68,12 +68,12 @@ const AllProducts = () => {
       filters.minPrice ||
       filters.maxPrice;
 
-    setDisplayProducts(
-      hasActiveFilters && filteredProducts.length >= 0
-        ? filteredProducts
-        : products
-    );
-  }, [filteredProducts, products, filters]);
+    if (hasActiveFilters) {
+      setDisplayProducts(filteredProducts);
+    } else {
+      setDisplayProducts([]);
+    }
+  }, [filteredProducts, filters]);
 
   // Handle filter changes
   const handleFilterChange = async (newFilters) => {
@@ -92,10 +92,9 @@ const AllProducts = () => {
     if (newFilters.maxPrice) params.set("max_price", newFilters.maxPrice);
 
     const queryString = params.toString();
-    router.push(
-      queryString ? `/all-products?${queryString}` : "/all-products",
-      { scroll: false }
-    );
+    router.push(queryString ? `/search?${queryString}` : "/search", {
+      scroll: false,
+    });
 
     // Fetch filtered products
     const hasFilters =
@@ -138,12 +137,18 @@ const AllProducts = () => {
           <div className="flex flex-col items-start">
             <div className="flex justify-between items-center w-full pt-12 mb-2">
               <div className="flex flex-col items-start">
-                <p className="text-2xl font-medium">Tất cả sản phẩm</p>
+                <p className="text-2xl font-medium">
+                  {filters.keyword
+                    ? `Kết quả tìm kiếm: "${filters.keyword}"`
+                    : "Tìm kiếm sản phẩm"}
+                </p>
                 <div className="w-16 h-0.5 bg-orange-600 rounded-full mt-1"></div>
               </div>
-              <p className="text-sm text-gray-600">
-                {displayProducts.length} sản phẩm
-              </p>
+              {displayProducts.length > 0 && (
+                <p className="text-sm text-gray-600">
+                  {displayProducts.length} sản phẩm
+                </p>
+              )}
             </div>
 
             {/* Active Filters Display */}
@@ -191,30 +196,67 @@ const AllProducts = () => {
               </div>
             )}
 
-            {/* Empty State */}
-            {!loading && displayProducts.length === 0 && (
-              <div className="w-full py-20 flex flex-col items-center">
-                <svg
-                  className="w-16 h-16 text-gray-400 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-gray-600 text-lg">
-                  Không tìm thấy sản phẩm phù hợp
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  Thử điều chỉnh bộ lọc của bạn
-                </p>
-              </div>
-            )}
+            {/* Empty State - No Filters Applied */}
+            {!loading &&
+              displayProducts.length === 0 &&
+              !filters.keyword &&
+              filters.brandIds.length === 0 &&
+              filters.categoryIds.length === 0 &&
+              !filters.minPrice &&
+              !filters.maxPrice && (
+                <div className="w-full py-20 flex flex-col items-center">
+                  <svg
+                    className="w-16 h-16 text-gray-400 mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <p className="text-gray-600 text-lg">
+                    Nhập từ khóa để tìm kiếm
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Hoặc sử dụng bộ lọc để tìm sản phẩm
+                  </p>
+                </div>
+              )}
+
+            {/* Empty State - No Results Found */}
+            {!loading &&
+              displayProducts.length === 0 &&
+              (filters.keyword ||
+                filters.brandIds.length > 0 ||
+                filters.categoryIds.length > 0 ||
+                filters.minPrice ||
+                filters.maxPrice) && (
+                <div className="w-full py-20 flex flex-col items-center">
+                  <svg
+                    className="w-16 h-16 text-gray-400 mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-gray-600 text-lg">
+                    Không tìm thấy sản phẩm phù hợp
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Thử điều chỉnh từ khóa hoặc bộ lọc của bạn
+                  </p>
+                </div>
+              )}
           </div>
         </div>
       </div>
@@ -230,4 +272,4 @@ const AllProducts = () => {
   );
 };
 
-export default AllProducts;
+export default SearchPage;

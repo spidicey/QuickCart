@@ -9,7 +9,11 @@ const Navbar = () => {
   const { isSeller, router, userData, setUserData, getCartCount } =
     useAppContext();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
   const handleLogout = async () => {
     localStorage.removeItem("access_token"); // Remove both just in case
@@ -17,10 +21,60 @@ const Navbar = () => {
     window.location.reload();
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchKeyword.trim()) {
+      router.push(`/search?keyword=${encodeURIComponent(searchKeyword.trim())}`);
+      setShowSearchInput(false);
+      setSearchKeyword("");
+    }
+  };
+
+  const handleSearchIconClick = () => {
+    setShowSearchInput(!showSearchInput);
+    setShowDropdown(false); // Close dropdown when opening search
+  };
+
+  // Focus search input when it appears
+  useEffect(() => {
+    if (showSearchInput && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearchInput]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close search input when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setShowSearchInput(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const cartCount = getCartCount();
 
   return (
-    <nav className="flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 border-b border-gray-300 text-gray-700">
+    <nav className="flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 border-b border-gray-300 text-gray-700 relative">
       <Image
         className="cursor-pointer w-28 md:w-32"
         onClick={() => router.push("/")}
@@ -38,14 +92,41 @@ const Navbar = () => {
       </div>
 
       <ul className="hidden md:flex items-center gap-4">
-        {/* Search Icon */}
-        <button className="hover:opacity-80 transition">
-          <Image
-            className="w-4 h-4"
-            src={assets.search_icon}
-            alt="biểu tượng tìm kiếm"
-          />
-        </button>
+        {/* Search Icon and Input */}
+        <div className="relative" ref={searchContainerRef}>
+          <button
+            onClick={handleSearchIconClick}
+            className="hover:opacity-80 transition"
+          >
+            <Image
+              className="w-4 h-4"
+              src={assets.search_icon}
+              alt="biểu tượng tìm kiếm"
+            />
+          </button>
+
+          {/* Search Input Popup */}
+          {showSearchInput && (
+            <div className="absolute right-0 top-8 w-80 bg-white shadow-lg rounded-lg border border-gray-200 p-3 z-50">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="Tìm kiếm sản phẩm..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                >
+                  Tìm
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
 
         {/* Cart Icon with Badge */}
         <button
@@ -68,7 +149,10 @@ const Navbar = () => {
         {userData ? (
           <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
+              onClick={() => {
+                setShowDropdown(!showDropdown);
+                setShowSearchInput(false); // Close search when opening dropdown
+              }}
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
               <Image src={assets.user_icon} alt="biểu tượng người dùng" />
@@ -124,6 +208,18 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div className="flex items-center md:hidden gap-3">
+        {/* Search for mobile */}
+        <button
+          onClick={() => router.push("/search")}
+          className="hover:opacity-80 transition"
+        >
+          <Image
+            className="w-4 h-4"
+            src={assets.search_icon}
+            alt="biểu tượng tìm kiếm"
+          />
+        </button>
+
         {/* Cart for mobile */}
         <button
           onClick={() => router.push("/cart")}
@@ -151,7 +247,7 @@ const Navbar = () => {
         )}
 
         {userData ? (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 hover:text-gray-900 transition"

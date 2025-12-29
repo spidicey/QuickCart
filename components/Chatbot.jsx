@@ -60,7 +60,7 @@ const Chatbot = () => {
 
     const messageText = inputMessage.trim();
     setInputMessage("");
-    
+
     // Add user message to chat
     const userMessage = {
       type: "user",
@@ -105,11 +105,11 @@ const Chatbot = () => {
         // Parse the response - handle stringified text with surrounding braces
         let botResponse;
 
-        if (typeof data.data === 'string') {
+        if (typeof data.data === "string") {
           // The API returns text wrapped in braces like "{\nText here\n}"
           // Remove the surrounding { } and trim
           const trimmed = data.data.trim();
-          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
             // Remove first { and last }
             botResponse = trimmed.slice(1, -1).trim();
           } else {
@@ -121,9 +121,10 @@ const Chatbot = () => {
           botResponse = data.data.output;
         } else {
           // Otherwise use data.data directly (might be object, convert to string)
-          botResponse = typeof data.data === 'object'
-            ? JSON.stringify(data.data, null, 2)
-            : data.data;
+          botResponse =
+            typeof data.data === "object"
+              ? JSON.stringify(data.data, null, 2)
+              : data.data;
         }
 
         setMessages((prev) => [
@@ -135,7 +136,7 @@ const Chatbot = () => {
           },
         ]);
       } else {
-        throw new Error(data.message || "Failed to get response");
+        //throw new Error(data.message || "Failed to get response");
       }
     } catch (error) {
       console.error("Chatbot error:", error);
@@ -195,7 +196,10 @@ const Chatbot = () => {
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.length === 0 && (
               <div className="text-center text-gray-500 mt-8">
-                <MessageCircle size={48} className="mx-auto mb-2 text-gray-300" />
+                <MessageCircle
+                  size={48}
+                  className="mx-auto mb-2 text-gray-300"
+                />
                 <p>Xin chào! Tôi có thể giúp gì cho bạn?</p>
               </div>
             )}
@@ -214,7 +218,9 @@ const Chatbot = () => {
                   }`}
                 >
                   {message.type === "user" ? (
-                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.text}
+                    </p>
                   ) : (
                     <div className="text-sm prose prose-sm max-w-none">
                       <ReactMarkdown
@@ -313,4 +319,3 @@ const Chatbot = () => {
 };
 
 export default Chatbot;
-

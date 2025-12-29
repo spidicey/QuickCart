@@ -80,7 +80,7 @@ const OrderSummary = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch addresses");
+        //throw new Error("Failed to fetch addresses");
       }
 
       const data = await response.json();
@@ -141,7 +141,7 @@ const OrderSummary = () => {
 
       if (!response.ok) {
         const result = await response.json();
-        throw new Error(result.message || "Không thể xóa địa chỉ");
+        //throw new Error(result.message || "Không thể xóa địa chỉ");
       }
 
       // Remove from local state
@@ -380,7 +380,7 @@ const OrderSummary = () => {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Không thể tạo đơn hàng");
+        //throw new Error(result.message || "Không thể tạo đơn hàng");
       }
       console.log(result);
       window.location.href = result.payment.qrUrl;
@@ -562,10 +562,12 @@ const OrderSummary = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-medium">{address.consignee_name}</p>
+                          <p className="font-medium">
+                            {address.consignee_name}
+                          </p>
                           <p className="text-xs text-gray-600">
-                            {address.house_num} {address.street}, {address.ward},{" "}
-                            {address.district}, {address.province}
+                            {address.house_num} {address.street}, {address.ward}
+                            , {address.district}, {address.province}
                           </p>
                           <p className="text-xs text-gray-500">
                             {address.consignee_phone}
@@ -579,7 +581,9 @@ const OrderSummary = () => {
                         <div className="flex gap-1 ml-2">
                           <button
                             type="button"
-                            onClick={(e) => handleEditAddress(e, address.address_id)}
+                            onClick={(e) =>
+                              handleEditAddress(e, address.address_id)
+                            }
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
                             title="Chỉnh sửa"
                           >
@@ -599,7 +603,9 @@ const OrderSummary = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={(e) => handleDeleteAddress(e, address.address_id)}
+                            onClick={(e) =>
+                              handleDeleteAddress(e, address.address_id)
+                            }
                             disabled={isDeletingAddress === address.address_id}
                             className={`p-1.5 text-red-600 hover:bg-red-50 rounded transition ${
                               isDeletingAddress === address.address_id

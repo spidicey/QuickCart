@@ -68,7 +68,7 @@ const AddAddress = () => {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch address");
+          //throw new Error("Failed to fetch address");
         }
 
         const data = await response.json();
@@ -219,10 +219,14 @@ const AddAddress = () => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Không thể lưu địa chỉ");
+        //throw new Error(result.message || "Không thể lưu địa chỉ");
       }
 
-      alert(editAddressId ? "Cập nhật địa chỉ thành công!" : "Thêm địa chỉ thành công!");
+      alert(
+        editAddressId
+          ? "Cập nhật địa chỉ thành công!"
+          : "Thêm địa chỉ thành công!"
+      );
       router.back();
     } catch (error) {
       console.error("Lỗi khi lưu địa chỉ:", error);
@@ -259,14 +263,16 @@ const AddAddress = () => {
 
       if (!response.ok) {
         const result = await response.json();
-        throw new Error(result.message || "Không thể xóa địa chỉ");
+        //throw new Error(result.message || "Không thể xóa địa chỉ");
       }
 
       alert("Xóa địa chỉ thành công!");
       router.back();
     } catch (error) {
       console.error("Lỗi khi xóa địa chỉ:", error);
-      alert(error.message || "Có lỗi xảy ra khi xóa địa chỉ. Vui lòng thử lại.");
+      alert(
+        error.message || "Có lỗi xảy ra khi xóa địa chỉ. Vui lòng thử lại."
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -294,8 +300,8 @@ const AddAddress = () => {
         <form onSubmit={onSubmitHandler} className="w-full">
           <p className="text-2xl md:text-3xl text-gray-500">
             {editAddressId ? "Chỉnh Sửa" : "Thêm"}{" "}
-            <span className="font-semibold text-orange-600">Địa Chỉ</span>{" "}
-            Giao Hàng
+            <span className="font-semibold text-orange-600">Địa Chỉ</span> Giao
+            Hàng
           </p>
           <div className="space-y-3 max-w-sm mt-10">
             <input
@@ -328,7 +334,9 @@ const AddAddress = () => {
               required
             >
               <option value="">
-                {isLoadingProvinces ? "Đang tải..." : "-- Chọn Tỉnh/Thành phố --"}
+                {isLoadingProvinces
+                  ? "Đang tải..."
+                  : "-- Chọn Tỉnh/Thành phố --"}
               </option>
               {provinces.map((p) => (
                 <option key={p.ProvinceID} value={p.ProvinceID}>

@@ -141,7 +141,7 @@ export default function MyOrders() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Không thể thực hiện thanh toán lại");
+        //throw new Error(result.message || "Không thể thực hiện thanh toán lại");
       }
 
       // Handle different payment methods similar to pay API

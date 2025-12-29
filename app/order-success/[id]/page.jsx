@@ -43,7 +43,7 @@ const OrderSuccess = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Không thể tải thông tin đơn hàng");
+        //throw new Error("Không thể tải thông tin đơn hàng");
       }
 
       const data = await response.json();

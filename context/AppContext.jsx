@@ -281,7 +281,7 @@ export const AppContextProvider = (props) => {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        //throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -296,7 +296,8 @@ export const AppContextProvider = (props) => {
           brand: product.brands?.brand_name || product.brand?.brand_name,
           brandId: product.brands?.brand_id || product.brand?.brand_id,
           category:
-            product.categories?.category_name || product.category?.category_name,
+            product.categories?.category_name ||
+            product.category?.category_name,
           categoryId:
             product.categories?.category_id || product.category?.category_id,
           status: product.status,
@@ -327,11 +328,11 @@ export const AppContextProvider = (props) => {
                   isPrimary: asset.is_primary,
                 })) || [],
               primaryImage:
-                variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
-                variant.variant_assets?.[0]?.url,
+                variant.variant_assets?.find((asset) => asset.is_primary)
+                  ?.url || variant.variant_assets?.[0]?.url,
               image:
-                variant.variant_assets?.find((asset) => asset.is_primary)?.url ||
-                variant.variant_assets?.[0]?.url,
+                variant.variant_assets?.find((asset) => asset.is_primary)
+                  ?.url || variant.variant_assets?.[0]?.url,
             })) ||
             product.variants?.map((variant) => ({
               variantId: variant.variant_id,

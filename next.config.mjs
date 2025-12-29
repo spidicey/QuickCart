@@ -13,6 +13,12 @@ const nextConfig = {
       ],
     unoptimized: true,
   },
+  devIndicators: {
+    buildActivity: false,
+    appIsrStatus: false,
+  },
+  // Disable error overlay
+  reactStrictMode: false,
 };
 
 export default nextConfig;

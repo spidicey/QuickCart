@@ -436,6 +436,16 @@ const Product = () => {
           </div>
         </div>
 
+        {/* Product Description */}
+        {productData.description && (
+          <div className="py-10 border-t">
+            <h2 className="text-2xl font-medium mb-4">MÔ TẢ SẢN PHẨM</h2>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+              {productData.description}
+            </p>
+          </div>
+        )}
+
         {/* Reviews Section */}
         <div className="py-10">
           <h2 className="text-2xl font-medium mb-6">ĐÁNH GIÁ SẢN PHẨM</h2>

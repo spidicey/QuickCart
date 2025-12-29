@@ -660,8 +660,8 @@ const OrderSummary = () => {
           </div>
         </div>
 
-        {/* Available Vouchers */}
-        <div>
+        {/* Available Vouchers - Hidden */}
+        {/* <div>
           <label className="text-base font-medium uppercase text-gray-600 block mb-2">
             Voucher khả dụng
           </label>
@@ -683,7 +683,7 @@ const OrderSummary = () => {
               Không có voucher khả dụng
             </p>
           )}
-        </div>
+        </div> */}
 
         {/* Payment Method Selection */}
         <div>
@@ -747,8 +747,8 @@ const OrderSummary = () => {
           </div>
         </div>
 
-        {/* Promo Code */}
-        <div>
+        {/* Promo Code - Hidden */}
+        {/* <div>
           <label className="text-base font-medium uppercase text-gray-600 block mb-2">
             Mã Giảm Giá
           </label>
@@ -781,7 +781,7 @@ const OrderSummary = () => {
               {discountAmount.toLocaleString()}
             </p>
           )}
-        </div>
+        </div> */}
 
         <hr className="border-gray-500/30 my-5" />
 
@@ -803,7 +803,8 @@ const OrderSummary = () => {
               {shippingFee.toLocaleString()}
             </p>
           </div>
-          {discountAmount > 0 && (
+          {/* Discount display - Hidden */}
+          {/* {discountAmount > 0 && (
             <div className="flex justify-between">
               <p className="text-gray-600">Giảm giá</p>
               <p className="font-medium text-green-700">
@@ -811,7 +812,7 @@ const OrderSummary = () => {
                 {discountAmount.toLocaleString()}
               </p>
             </div>
-          )}
+          )} */}
           <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
             <p>Tổng Cộng</p>
             <p>
